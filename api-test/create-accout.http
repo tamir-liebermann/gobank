@@ -1,0 +1,7 @@
+POST http://localhost:8080/create
+Content-Type: application/json
+
+{
+    "user_name": "tamirEx",
+    "password": "examplePassword"
+}

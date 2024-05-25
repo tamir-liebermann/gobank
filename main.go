@@ -1,7 +1,17 @@
 package main
 
-import "fmt"
+import (
+	"github.com/tamir-liebermann/gobank/api"
+	"github.com/tamir-liebermann/gobank/db"
+)
 
-func main () {
-	fmt.Println("Yeah buddy!")
+
+func main() {
+	accMgr,err := db.InitDB()
+	if err !=nil{
+		panic(err)
+	}
+
+	apiMgr := api.NewApiManager(accMgr)
+	apiMgr.Run()
 }
