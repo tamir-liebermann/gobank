@@ -1,0 +1,8 @@
+POST http://localhost:8080/login
+Content-Type: application/json
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTY5MTg0NzIsInVzZXJJZCI6IjY2NTVmY2E4MDMyOWQ5YTAxNjllZTgwNSIsInVzZXJuYW1lIjoidGFtaXJFeDIifQ.h40iM7rmQs4CpDzik0C46fJjQiXC4K2Ujat1JUi9AnQ
+
+{
+    "user_name": "tamirEx3",
+    "password": "examplePassword3"
+}

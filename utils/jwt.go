@@ -5,48 +5,54 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const secretKey = "supersecret"
 
-func GenerateToken(email string, userId int64) (string, error) {
+func GenerateToken(username string,  userId primitive.ObjectID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":  email,
-		"userId": userId,
+		"username":  username,
+		"userId": userId.Hex(),
 		"exp":    time.Now().Add(time.Hour * 2).Unix(),
 	})
 
 	return token.SignedString([]byte(secretKey))
 }
 
-func VerifyToken(token string) (int64, error) {
+func VerifyToken(token string) (primitive.ObjectID, error) {
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 
 		if !ok {
-			return nil, errors.New("Unexpected sigining method")
+			return nil, errors.New("unexpected sigining method")
 		}
 		return []byte(secretKey), nil
 	})
 
 	if err != nil {
-		return 0, errors.New("Could not parse token.")
+		return primitive.NilObjectID, errors.New("could not parse token")
 	}
 
 	tokenIsValid := parsedToken.Valid
 
 	if !tokenIsValid {
-		return 0, errors.New("Invalid token!")
+		return primitive.NilObjectID, errors.New("invalid token")
 	}
 
 	claims, ok := parsedToken.Claims.(jwt.MapClaims)
 
 	if !ok {
-		return 0, errors.New("Invalid token claims.")
+		return primitive.NilObjectID, errors.New("invalid token claims")
 	}
+	userIdHex, ok := claims["userId"].(string)
+    if !ok {
+        return primitive.NilObjectID, errors.New("invalid user ID in token claims")
+    }
 
-	// email := claims["email"].(string)
-	userId := int64(claims["userId"].(float64))
+	userId, err := primitive.ObjectIDFromHex(userIdHex)
+	if err != nil {
+        return primitive.NilObjectID, errors.New("invalid user ID format in token claims")
+    }
 	return userId, nil
-
 }

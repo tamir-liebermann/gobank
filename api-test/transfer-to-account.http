@@ -1,0 +1,10 @@
+POST http://localhost:8080/account/transfer/6656f8a79a83f60fc2ee180e
+Content-Type: application/json
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTY5OTM2ODQsInVzZXJJZCI6IjY2NTcyMjc0OGE1ZjQ5OTVmZTZmZTYxOSIsInVzZXJuYW1lIjoidGFtaXJFeDQifQ.cxWf1cXy3pnOMezdVANrnXyucJSYlIvTi6XYAZ62L0U
+
+{
+    "from_account_id": "6656f8a79a83f60fc2ee180e",
+    "to_account_id": "665722748a5f4995fe6fe619",
+    "amount": 100.8
+}
+ß
