@@ -15,6 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// BankAccount represents a bank account.
+// swagger:model
 type BankAccount struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"`
 	AccountHolder string    `bson:"account_holder"`

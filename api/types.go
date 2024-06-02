@@ -1,6 +1,9 @@
 package api
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"github.com/tamir-liebermann/gobank/db"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 // 	"context"
 // 	"log"
@@ -40,4 +43,17 @@ type TransferRequest struct {
 	FromAccountID string `json:"from_account_id"`
 	ToAccountID string `json:"to_account_id"`
 	Amount    float64 `json:"amount"`
+}
+
+type ErrorResponse struct {
+    Message string `json:"message"`
+    // Add other fields as needed
+}
+
+type BankAccRes struct {
+	BankAcc db.BankAccount `json:"bank_account"`
+}
+
+type BankAccsRes struct {
+	BankAccs []db.BankAccount
 }
