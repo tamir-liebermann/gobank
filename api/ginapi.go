@@ -333,12 +333,11 @@ func (api *ApiManager) handleTransfer(ctx *gin.Context) {
 // @ID get-transactions-history
 // @Produce json
 // @Param id path string true "Account ID"
-// @Success 200 {array} TransactionRes "Successful response"
+// @Success 200 {object} AllTransactionsRes 
 // @Failure 400 {object} ErrorResponse "Invalid account ID format"
 // @Failure 500 {object} ErrorResponse "Internal server error"
 // @Router /account/transactions/{id} [get]
 // @Security BearerAuth
-// handleGetTransactionsHistory handles the GET request to retrieve transaction history for a specific account.
 func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
     idParam := ctx.Param("id")
     id, err := primitive.ObjectIDFromHex(idParam)
@@ -358,9 +357,13 @@ func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
         return
     }
 
-    ctx.JSON(http.StatusOK, transactions)
-}
+    // Create AllTransactionsRes instance
+    allTransactionsRes := AllTransactionsRes{
+        Transactions: transactions,
+    }
 
+    ctx.JSON(http.StatusOK, allTransactionsRes)
+}
 
 
 

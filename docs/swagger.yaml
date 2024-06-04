@@ -1,4 +1,11 @@
 definitions:
+  api.AllTransactionsRes:
+    properties:
+      transactions:
+        items:
+          $ref: '#/definitions/db.Transaction'
+        type: array
+    type: object
   api.BankAccRes:
     properties:
       bank_account:
@@ -59,6 +66,19 @@ definitions:
       password:
         type: string
       updatedAt:
+        type: string
+    type: object
+  db.Transaction:
+    properties:
+      amount:
+        type: number
+      from_account:
+        type: string
+      id:
+        type: string
+      timestamp:
+        type: string
+      to_account:
         type: string
     type: object
 info:
@@ -125,6 +145,66 @@ paths:
       security:
       - BearerAuth: []
       summary: Get account by ID
+  /account/name/{account_holder}:
+    get:
+      description: Retrieve account details by the account holder's name
+      operationId: get-account-by-name
+      parameters:
+      - description: Account Holder's Name
+        in: path
+        name: account_holder
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Account found!
+          schema:
+            $ref: '#/definitions/api.BankAccRes'
+        "400":
+          description: Invalid ID format
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Account not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get account by account holder's name
+  /account/transactions/{id}:
+    get:
+      description: Retrieve transaction history for a specific bank account
+      operationId: get-transactions-history
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.AllTransactionsRes'
+        "400":
+          description: Invalid account ID format
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transactions history for an account
   /account/transfer/{id}:
     post:
       consumes:

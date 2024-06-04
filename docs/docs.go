@@ -15,6 +15,100 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/account/name/{account_holder}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve account details by the account holder's name",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get account by account holder's name",
+                "operationId": "get-account-by-name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account Holder's Name",
+                        "name": "account_holder",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Account found!",
+                        "schema": {
+                            "$ref": "#/definitions/api.BankAccRes"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID format",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Account not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/account/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve transaction history for a specific bank account",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get transactions history for an account",
+                "operationId": "get-transactions-history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.AllTransactionsRes"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid account ID format",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/account/transfer/{id}": {
             "post": {
                 "security": [
@@ -299,6 +393,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.AllTransactionsRes": {
+            "type": "object",
+            "properties": {
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/db.Transaction"
+                    }
+                }
+            }
+        },
         "api.BankAccRes": {
             "type": "object",
             "properties": {
@@ -392,6 +497,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "db.Transaction": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "from_account": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "to_account": {
                     "type": "string"
                 }
             }

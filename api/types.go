@@ -1,6 +1,7 @@
 package api
 
 import (
+
 	"github.com/tamir-liebermann/gobank/db"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -45,6 +46,11 @@ type TransferRequest struct {
 	Amount    float64 `json:"amount"`
 }
 
+
+type AllTransactionsRes struct {
+    Transactions []db.Transaction `json:"transactions"`
+    
+}
 type ErrorResponse struct {
     Message string `json:"message"`
     // Add other fields as needed
