@@ -26,8 +26,20 @@ type BankAccount struct {
 	Password      string    `bson:"password"`
 }
 
+
+type Transaction struct {
+    ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+    FromAccount primitive.ObjectID `bson:"from_account" json:"from_account"`
+    ToAccount   primitive.ObjectID `bson:"to_account" json:"to_account"`
+    Amount      float64            `bson:"amount" json:"amount"`
+    Timestamp   time.Time          `bson:"timestamp" json:"timestamp"`
+}
+
+
 type AccManager struct {
 	client *mongo.Client
+    transactions *mongo.Collection
+	accounts *mongo.Collection
 }
 
 func InitDB() (*AccManager, error) {
@@ -64,9 +76,11 @@ func NewManager(uri string) (*AccManager, error) {
 		fmt.Println("singleton init")
 	})
 		
-
+	db := singletonClient.Database("banktest")	
 	return &AccManager{
 		client:  singletonClient,
+		transactions: db.Collection("transactions"),
+		accounts: db.Collection("accs"),
 	}, nil
 }
 func (m *AccManager) CreateAccount(name string, password string) (string,error) {
@@ -192,7 +206,7 @@ func (m *AccManager) TransferAmountById(fromAccountId, toAccountId primitive.Obj
     defer session.EndSession(context.TODO())
 
     callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
-        collection := m.client.Database("banktest").Collection("accs")
+        collection := m.accounts
 
         // Find the from account and ensure sufficient funds
         var fromAccount BankAccount
@@ -236,6 +250,18 @@ func (m *AccManager) TransferAmountById(fromAccountId, toAccountId primitive.Obj
             return nil, err
         }
 
+        // Record the transaction
+        transaction := Transaction{
+            FromAccount: fromAccountId,
+            ToAccount:   toAccountId,
+            Amount:      amount,
+            Timestamp:   time.Now(),
+        }
+        _, err = m.transactions.InsertOne(sessCtx, transaction)
+        if err != nil {
+            return nil, err
+        }
+
         return nil, nil
     }
 
@@ -245,4 +271,38 @@ func (m *AccManager) TransferAmountById(fromAccountId, toAccountId primitive.Obj
     }
 
     return nil
+}
+
+
+
+
+func (m *AccManager) GetTransactionsHistory(accountId primitive.ObjectID) ([]Transaction, error) {
+    filter := bson.M{
+        "$or": []bson.M{
+            {"from_account": accountId},
+            {"to_account": accountId},
+        },
+    }
+
+    cursor, err := m.transactions.Find(context.TODO(), filter)
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(context.TODO())
+
+    var transactions []Transaction
+    for cursor.Next(context.TODO()) {
+        var transaction Transaction
+        err := cursor.Decode(&transaction)
+        if err != nil {
+            return nil, err
+        }
+        transactions = append(transactions, transaction)
+    }
+
+    if err := cursor.Err(); err != nil {
+        return nil, err
+    }
+
+    return transactions, nil
 }

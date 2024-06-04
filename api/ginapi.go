@@ -33,7 +33,9 @@ func(api *ApiManager) registerRoutes(server *gin.Engine) {
 	accounts := server.Group("/account")
 	accounts.Use(authenticate)
 
+	accounts.GET("/transactions/:id", api.handleGetTransactionsHistory)
 	accounts.GET("/:id", api.handleGetById)
+    accounts.GET("/name/:account_holder", api.handleGetByName)
 	accounts.DELETE("/:id", api.handleDeleteById)
 	accounts.POST("/transfer/:id", api.handleTransfer )
 
@@ -203,6 +205,39 @@ func (api *ApiManager) handleGetById(ctx *gin.Context) {
 
 }
 
+// @Summary Get account by account holder's name
+// @Description Retrieve account details by the account holder's name
+// @ID get-account-by-name
+// @Produce json
+// @Param account_holder path string true "Account Holder's Name"
+// @Success 200 {object} BankAccRes    "Account found!"
+// @Failure 400 {object} ErrorResponse "Invalid ID format"
+// @Failure 404 {object} ErrorResponse "Account not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /account/name/{account_holder} [get]
+// @Security BearerAuth
+func (api *ApiManager) handleGetByName(ctx *gin.Context) {
+    // Extract the account holder's name from the request parameters
+    accountHolder := ctx.Param("account_holder")
+
+    // Search for the account by name
+    account, err := api.accMgr.SearchAccountByName(accountHolder)
+    if err != nil {
+        // If there's an internal server error, return 500 status
+        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
+        return
+    }
+
+    // If the account is not found, return 404 status
+    if account == nil {
+        ctx.JSON(http.StatusNotFound, ErrorResponse{Message: "Account not found"})
+        return
+    }
+
+    // Return the account details if found
+    ctx.JSON(http.StatusOK, account)
+}
+
 // @Param id path string true "Account ID"
 // @Success 200 {object} string "Success"
 // @Failure 400 {object} ErrorResponse "Invalid ID format"
@@ -288,6 +323,42 @@ func (api *ApiManager) handleTransfer(ctx *gin.Context) {
     }
 
     ctx.JSON(http.StatusOK, gin.H{"message": "transfer successful"})
+}
+
+
+
+
+// @Summary Get transactions history for an account
+// @Description Retrieve transaction history for a specific bank account
+// @ID get-transactions-history
+// @Produce json
+// @Param id path string true "Account ID"
+// @Success 200 {array} TransactionRes "Successful response"
+// @Failure 400 {object} ErrorResponse "Invalid account ID format"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /account/transactions/{id} [get]
+// @Security BearerAuth
+// handleGetTransactionsHistory handles the GET request to retrieve transaction history for a specific account.
+func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
+    idParam := ctx.Param("id")
+    id, err := primitive.ObjectIDFromHex(idParam)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid ID format"})
+        return
+    }
+
+    transactions, err := api.accMgr.GetTransactionsHistory(id)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
+        return
+    }
+
+    if transactions == nil {
+        ctx.JSON(http.StatusNotFound, ErrorResponse{Message: "Transactions not found"})
+        return
+    }
+
+    ctx.JSON(http.StatusOK, transactions)
 }
 
 

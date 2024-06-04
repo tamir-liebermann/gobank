@@ -57,3 +57,4 @@ type BankAccRes struct {
 type BankAccsRes struct {
 	BankAccs []db.BankAccount
 }
+
