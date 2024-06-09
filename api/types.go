@@ -1,7 +1,6 @@
 package api
 
 import (
-
 	"github.com/tamir-liebermann/gobank/db"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
