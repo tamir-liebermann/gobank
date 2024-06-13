@@ -2,8 +2,12 @@ package api
 
 import (
 	// "log"
+	"bytes"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
@@ -12,6 +16,34 @@ import (
 	"github.com/tamir-liebermann/gobank/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+var urlMap = map[string]string{
+	"create account":                    "http://localhost:8080/create",
+	"login":                             "http://localhost:8080/login",
+	"get account by ID":                 "http://localhost:8080/account/:id",
+	"get account by name":               "http://localhost:8080/account/name/:account_holder",
+	"delete account by ID":              "http://localhost:8080/account/:id",
+	"transfer funds":                    "http://localhost:8080/account/transfer/:id",
+	"get transactions history":          "http://localhost:8080/account/transactions/:id",
+	"get all accounts (admin only)":     "http://localhost:8080/admin/accounts",
+}
+
+
+type GPTRequest struct {
+	Model    string `json:"model"`
+	Prompt   string `json:"prompt"`
+	MaxTokens int   `json:"max_tokens"`
+}
+
+type GPTResponse struct {
+	Choices []struct {
+		Text string `json:"text"`
+	} `json:"choices"`
+}
+
+type ChatReq struct {
+    UserText string `json:"user_text"`
+}
 
 type ApiManager struct{
 accMgr *db.AccManager
@@ -41,6 +73,7 @@ func(api *ApiManager) registerRoutes(server *gin.Engine) {
 
 	admin := server.Group("/admin")
 	admin.GET("/accounts", api.handleGetAccounts)
+    server.POST("/chatgpt", api.handleChatGPTRequest)
 
 }
 
@@ -70,6 +103,115 @@ func(api *ApiManager) Run() {
 	api.registerRoutes(server)
 
 	server.Run(":8080") //localhost:8080
+}
+
+
+func parseUserInput(input string) (string, map[string]string) {
+	// Example simple parser (adjust as necessary for your use case)
+	if strings.HasPrefix(input, "transfer") {
+		parts := strings.Split(input, " ")
+		if len(parts) >= 4 {
+			return "transfer funds", map[string]string{
+				"amount":         parts[1],
+				"account_holder": parts[3], // Assuming "to John Doe" format
+			}
+		}
+	}
+	
+	return "", nil
+}
+
+func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
+	var req struct {
+		UserText string `json:"user_text"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Bad request"})
+		return
+	}
+
+	// Call GPT API
+	gptResponse, err := callGPTAPI(req.UserText)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Error calling GPT API", "error": err.Error()})
+		return
+	}
+
+	responseText := gptResponse.Choices[0].Text
+
+	// Check if the response fits a pre-defined URL pattern
+	if url, exists := urlMap[responseText]; exists {
+		// Example placeholder replacements (you will need to determine actual values from context)
+		url = strings.Replace(url, ":id", "actual_id_value", 1) // Replace with actual ID value
+		url = strings.Replace(url, ":account_holder", "actual_account_holder_value", 1) // Replace with actual account holder value
+		
+		// Send HTTP request
+		apiResponse, err := sendHTTPRequest(url)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Error sending HTTP request", "error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusOK, gin.H{"message": "API call successful", "response": apiResponse})
+	} else {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Request not identified, please try again."})
+	}
+}
+
+// Call GPT API to generate response based on user input
+func callGPTAPI(prompt string) (*GPTResponse, error) {
+	apiKey := "sk-proj-JKaZ7i09WvyceQo5zSCdT3BlbkFJxSsFxUuGjeqfBRPN5wlO"
+	url := "https://api.openai.com/v1/completions"
+
+	requestBody, err := json.Marshal(GPTRequest{
+		Model:     "text-davinci-003",
+		Prompt:    prompt,
+		MaxTokens: 150,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var gptResponse GPTResponse
+	if err := json.Unmarshal(body, &gptResponse); err != nil {
+		return nil, err
+	}
+
+	return &gptResponse, nil
+}
+
+// Utility function to send HTTP GET request and retrieve response body as string
+func sendHTTPRequest(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
 }
 
 // @Summary Create a new account
