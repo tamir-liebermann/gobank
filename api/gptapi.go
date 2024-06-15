@@ -26,7 +26,7 @@ const (
 
 type GenericRequst struct {
 	Intent string          `json:"intent"`
-	Body   []byte `json:"body"`
+	Body   map[string]interface{} `json:"body"`
 }
 
 var urlMap = map[string]string{
@@ -56,7 +56,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
 	userInput := strings.ToLower(strings.TrimSpace(chatReq.UserText))
 
-	client := openai.NewClient("sk-proj-JKaZ7i09WvyceQo5zSCdT3BlbkFJxSsFxUuGjeqfBRPN5wlO")
+	client := openai.NewClient("sk-proj-4uI52DxoSVvkMSlx7vAqT3BlbkFJdk9t7YDPID1Ome55jWCL")
 
 	rules := `
 		You are a bank API, you reply in json objects only, if unsure ask for clarification.
@@ -108,14 +108,21 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
 	switch req.Intent {
 	case TRANSFER_INTENT:
-		var transferReq TransferRequest
-		err = json.Unmarshal(req.Body, &transferReq)
+		bodyBytes,err  := json.Marshal(req.Body)
 	if err != nil {
 				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
 
 	}
 
-		err := api.handleTransferIntent(accountId,transferReq.To,transferReq.Amount)
+
+		var transferReq TransferRequest
+		err = json.Unmarshal(bodyBytes, &transferReq)
+	if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+
+	}
+		
+		err = api.handleTransferIntent(accountId,transferReq.To,transferReq.Amount)
 		if err != nil{
 					ctx.JSON(http.StatusInternalServerError, gin.H{"message": "servererror"})
 

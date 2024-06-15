@@ -41,7 +41,8 @@ type AccManager struct {
 }
 
 func InitDB() (*AccManager, error) {
-	mgr, err := NewManager("mongodb+srv://tamirlieb2:tamir147@cluster0.im9fd2n.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+	 mgr, err := NewManager("mongodb+srv://tamirlieb2:tamir147@cluster0.im9fd2n.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+	//mgr, err := NewManager("mongodb://localhost:27017")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +60,7 @@ func NewManager(uri string) (*AccManager, error) {
 	clientOptions := options.Client().ApplyURI(uri)
 	
 	once.Do(func() {
-		ctx,cancelFunc := context.WithTimeout(context.Background(),3*time.Second)
+	ctx,cancelFunc := context.WithTimeout(context.Background(),3*time.Second)
 		defer cancelFunc()
 		client, err := mongo.Connect(ctx, clientOptions)
 		if err != nil {

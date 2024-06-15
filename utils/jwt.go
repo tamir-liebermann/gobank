@@ -20,7 +20,7 @@ func GenerateToken(username string, userId primitive.ObjectID) (string, error) {
 	return token.SignedString([]byte(secretKey))
 }
 
-func VerifyToken(token string) (primitive.ObjectID, error) {
+func VerifyToken(token string) (string, error) {
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 
@@ -31,28 +31,25 @@ func VerifyToken(token string) (primitive.ObjectID, error) {
 	})
 
 	if err != nil {
-		return primitive.NilObjectID, errors.New("could not parse token")
+		return "", errors.New("could not parse token")
 	}
 
 	tokenIsValid := parsedToken.Valid
 
 	if !tokenIsValid {
-		return primitive.NilObjectID, errors.New("invalid token")
+		return "", errors.New("invalid token")
 	}
 
 	claims, ok := parsedToken.Claims.(jwt.MapClaims)
 
 	if !ok {
-		return primitive.NilObjectID, errors.New("invalid token claims")
+		return "", errors.New("invalid token claims")
 	}
 	userIdHex, ok := claims["userId"].(string)
 	if !ok {
-		return primitive.NilObjectID, errors.New("invalid user ID in token claims")
+		return "", errors.New("invalid user ID in token claims")
 	}
 
-	userId, err := primitive.ObjectIDFromHex(userIdHex)
-	if err != nil {
-		return primitive.NilObjectID, errors.New("invalid user ID format in token claims")
-	}
-	return userId, nil
+	return  userIdHex, nil
+
 }
