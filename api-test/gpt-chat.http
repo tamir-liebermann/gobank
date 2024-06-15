@@ -1,6 +1,7 @@
-POST http://localhost:8080/chatgpt
+POST http://localhost:8080/account/chatgpt
 Content-Type: application/json
 
+
 {
-    "user_text": "hello"
+    "user_text": "create account , the user name is eitan and the password is eitan as well "
 }

@@ -15,9 +15,8 @@ import (
 // @BasePath /
 func main() {
 
-
-	accMgr,err := db.InitDB()
-	if err !=nil{
+	accMgr, err := db.InitDB()
+	if err != nil {
 		panic(err)
 	}
 

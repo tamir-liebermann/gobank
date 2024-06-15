@@ -1,6 +1,5 @@
 POST http://localhost:8080/login
 Content-Type: application/json
-authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTc3MDIwMDYsInVzZXJJZCI6IjY2NWUxOGY2NWE2ZWYwMmFkZjE2YWY1ZCIsInVzZXJuYW1lIjoiSmhvbiJ9.DbnswRFOsRaqHp3i_PcwH-4q3TK40gwGeqIuiyWyIso
 
 {
     "user_name": "Jhon",

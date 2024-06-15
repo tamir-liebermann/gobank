@@ -10,11 +10,11 @@ import (
 
 const secretKey = "supersecret"
 
-func GenerateToken(username string,  userId primitive.ObjectID) (string, error) {
+func GenerateToken(username string, userId primitive.ObjectID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username":  username,
-		"userId": userId.Hex(),
-		"exp":    time.Now().Add(time.Hour * 72).Unix(),
+		"username": username,
+		"userId":   userId.Hex(),
+		"exp":      time.Now().Add(time.Hour * 72).Unix(),
 	})
 
 	return token.SignedString([]byte(secretKey))
@@ -46,13 +46,13 @@ func VerifyToken(token string) (primitive.ObjectID, error) {
 		return primitive.NilObjectID, errors.New("invalid token claims")
 	}
 	userIdHex, ok := claims["userId"].(string)
-    if !ok {
-        return primitive.NilObjectID, errors.New("invalid user ID in token claims")
-    }
+	if !ok {
+		return primitive.NilObjectID, errors.New("invalid user ID in token claims")
+	}
 
 	userId, err := primitive.ObjectIDFromHex(userIdHex)
 	if err != nil {
-        return primitive.NilObjectID, errors.New("invalid user ID format in token claims")
-    }
+		return primitive.NilObjectID, errors.New("invalid user ID format in token claims")
+	}
 	return userId, nil
 }
