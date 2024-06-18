@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tamir-liebermann/gobank/db"
 	"github.com/tamir-liebermann/gobank/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -21,20 +22,19 @@ import (
 // @Failure 500 {object} ErrorResponse "internal server error"
 // @Router /create [post]
 func (api *ApiManager) handleCreateAccount(ctx *gin.Context) {
-
 	var req CreateAccountRequest
 	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
+	if err !=nil{
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Bad request"})
-
+		
 	}
-
-	accountID, err := api.accMgr.CreateAccount(req.UserName, req.Password)
+	
+	 accountID,err := api.accMgr.CreateAccount(req.UserName,req.Password, req.Balance, req.PhoneNumber) 
 	if err != nil {
-
+		
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Could not create account, try again later"})
 		return
-	}
+	}	
 
 	objectID, err := primitive.ObjectIDFromHex(accountID)
 	if err != nil {
@@ -46,12 +46,13 @@ func (api *ApiManager) handleCreateAccount(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error generating token "})
 		return
 	}
-	response := CreateAccountResponse{
-		Message: "Account created!",
-		Id:      accountID,
-		Token:   token,
+	response := CreateAccountResponse{ 
+			Message: "Account created!",
+			Id:      accountID,
+			Token:   token,
 	}
 
+	
 	ctx.JSON(http.StatusCreated, response)
 }
 
@@ -68,48 +69,65 @@ func (api *ApiManager) handleCreateAccount(ctx *gin.Context) {
 // @Router /login [post]
 // @Security BearerAuth
 func (api *ApiManager) handleLogin(ctx *gin.Context) {
-	var req LoginRequest
+    var req LoginRequest
 
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Bad request"})
-		return
-	}
+    // Parse the JSON request body
+    err := ctx.ShouldBindJSON(&req)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Bad request"})
+        return
+    }
 
-	if req.UserName == "" || req.Password == "" {
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Username and password are required"})
-		return
-	}
+    // Validate required fields
+    if req.UserName == "" || req.Password == "" {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Username and password are required"})
+        return
+    }
 
-	account, err := api.accMgr.SearchAccountByName(req.UserName)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
-		return
-	}
+    // Search for the account by user name (returns a slice of accounts)
+    accounts, err := api.accMgr.SearchAccountByNameOrPhone(req.UserName)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
+        return
+    }
 
-	if account == nil {
-		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid cardinals"})
-		return
-	}
+    // Check if no accounts were found
+    if len(accounts) == 0 {
+        ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid credentials"})
+        return
+    }
 
-	if !utils.CheckPasswordHash(req.Password, account.Password) {
-		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid cardinals"})
-		return
-	}
+    // Iterate over the returned accounts to find a match with the password
+    var account *db.BankAccount
+    for _, acc := range accounts {
+        if utils.CheckPasswordHash(req.Password, acc.Password) {
+            account = acc
+            break
+        }
+    }
 
-	token, err := utils.GenerateToken(account.AccountHolder, account.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error generating token "})
-		return
-	}
-	response := LoginResponse{
-		UserName: req.UserName,
-		Token:    token,
-	}
+    // If no account matches the provided password
+    if account == nil {
+        ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid credentials"})
+        return
+    }
 
-	ctx.JSON(http.StatusOK, response)
+    // Generate a token for the authenticated user
+    token, err := utils.GenerateToken(account.AccountHolder, account.ID)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error generating token"})
+        return
+    }
 
+    // Prepare and send the response
+    response := LoginResponse{
+        UserName: req.UserName,
+        Token:    token,
+    }
+
+    ctx.JSON(http.StatusOK, response)
 }
+
 
 // @Summary Get account by ID
 // @Description Get account details by its ID
@@ -155,26 +173,27 @@ func (api *ApiManager) handleGetById(ctx *gin.Context) {
 // @Failure 500 {object} ErrorResponse "Internal server error"
 // @Router /account/name/{account_holder} [get]
 // @Security BearerAuth
-func (api *ApiManager) handleGetByName(ctx *gin.Context) {
+func (api *ApiManager) handleGetByNameOrPhone(ctx *gin.Context) {
 	// Extract the account holder's name from the request parameters
-	accountHolder := ctx.Param("account_holder")
+	 var req struct {
+        Query string `json:"query" binding:"required"`
+    }
 
-	// Search for the account by name
-	account, err := api.accMgr.SearchAccountByName(accountHolder)
-	if err != nil {
-		// If there's an internal server error, return 500 status
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
-		return
-	}
+    // Parse the JSON request body
+    if err := ctx.ShouldBindJSON(&req); err != nil {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid request"})
+        return
+    }
 
-	// If the account is not found, return 404 status
-	if account == nil {
-		ctx.JSON(http.StatusNotFound, ErrorResponse{Message: "Account not found"})
-		return
-	}
+    // Call the SearchAccountByNameOrPhone function
+    accounts, err := api.accMgr.SearchAccountByNameOrPhone(req.Query)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
+        return
+    }
 
-	// Return the account details if found
-	ctx.JSON(http.StatusOK, account)
+    // Prepare and send the response
+    ctx.JSON(http.StatusOK, accounts)
 }
 
 // @Param id path string true "Account ID"
@@ -299,4 +318,41 @@ func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, allTransactionsRes)
+}
+
+
+func (api *ApiManager) handleDeposit(ctx *gin.Context) {
+    var req DepositRequest
+
+    // Parse the JSON request body
+    if err := ctx.ShouldBindJSON(&req); err != nil {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid request"})
+        return
+    }
+
+    // Validate that the amount is positive
+    if req.Amount <= 0 {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Amount must be greater than zero"})
+        return
+    }
+
+    // Convert the account ID from string to ObjectID
+    accountID, err := primitive.ObjectIDFromHex(req.AccountID)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid account ID format"})
+        return
+    }
+
+    // Perform the deposit operation
+    err = api.accMgr.DepositToAccount(req.Amount, accountID)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error depositing to account"})
+        return
+    }
+
+    // Prepare and send the response
+    response := DepositResponse{
+        Message: "Deposit successful",
+    }
+    ctx.JSON(http.StatusOK, response)
 }

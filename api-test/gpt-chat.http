@@ -1,7 +1,7 @@
 POST http://localhost:8080/account/chatgpt
 Content-Type: application/json
-authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTg3MTE3NDEsInVzZXJJZCI6IjY2NWUxOGY2NWE2ZWYwMmFkZjE2YWY1ZCIsInVzZXJuYW1lIjoiSmhvbiJ9.70AF0rIOjmAkYU9rgwrHzlj5q6boWcsiGTffCzgi_Hk
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTg4MTIwMjYsInVzZXJJZCI6IjY2NWUxOGY2NWE2ZWYwMmFkZjE2YWY1ZCIsInVzZXJuYW1lIjoiSmhvbiJ9.BNVu6N0jo6nU_TQADua0ds_wnHgDuISd0wnXM7agLxM
 
 {
-    "user_text": "transfer to account 665f76eb77f49983114cd8ae a sum of 100 "
+    "user_text": " search for tommy phone number "
 }

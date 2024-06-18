@@ -36,7 +36,12 @@ type CreateAccountResponse struct {
 	Token   string `json:"token"`
 }
 
-type CreateAccountRequest = LoginRequest
+type CreateAccountRequest struct {
+	Password    string  `json:"password"`
+	UserName    string  `json:"user_name"`
+	Balance     float64 `json:"balance"`
+	PhoneNumber string  `json:"phone_number"`
+}
 
 type TransferRequest struct {
 	From   string  `json:"from,omitempty"`
@@ -46,6 +51,11 @@ type TransferRequest struct {
 
 type AllTransactionsRes struct {
 	Transactions []db.Transaction `json:"transactions"`
+}
+
+type TransactionsReq struct {
+	    AccountID string `json:"_id"`
+
 }
 type ErrorResponse struct {
 	Message string `json:"message"`
@@ -74,4 +84,17 @@ type GPTResponse struct {
 
 type ChatReq struct {
 	UserText string `json:"user_text"`
+}
+
+type AccNameReq struct {
+	AccountHolder string `json:"account_holder"`
+}
+
+type DepositRequest struct {
+	AccountID string `json:"_id"`
+	Amount 	  float64 `json:"amount"`
+}
+
+type DepositResponse struct {
+	Message 	string `json:"message"`
 }

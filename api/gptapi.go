@@ -1,13 +1,13 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
+
+	"github.com/tamir-liebermann/gobank/db"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,6 +17,10 @@ import (
 
 const (
 	TRANSFER_INTENT = "transfer"
+	FIND_ACCOUNT_INTENT= "find this account"
+	TRANSACTIONS_INTENT= "transactions"
+	SEARCH_INTENT="search"
+	DEPOSIT_INTENT= "deposit"
 )
 
 // type AgentTransferRequest struct {
@@ -72,6 +76,39 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 			
 		}
 
+		If the user wants to search for another account by id, give them: 
+		{
+			"intent": "find this account", // must be this keyword
+			"body": {
+				"_id":"string", // must be the id 
+			}
+		}
+
+		If the user wants to see his transactions history , give them:
+		{
+			"intent": "transactions", // must be this keyword 
+			"body": {
+				"_id": "string", // must be the id 
+			}
+		}
+
+		If the user wants to search for account by his name or his phone   , give them:
+		{
+			"intent": "search", // must be this keyword
+			"body": {
+				"account_holder": "string", // must be the account holder
+				"phone_number": "string", // must be the account's phone number
+			}
+		}
+
+		If the user wants to deposit money to his account , give them:
+		{
+			"intent": "deposit", // must be this keyword
+			"body": {
+				"_id": "string", // must be the id 
+				"amount": "float" // must be specified
+			}
+		}
 	`
 
 	resp, err := client.CreateChatCompletion(
@@ -127,7 +164,98 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 					ctx.JSON(http.StatusInternalServerError, gin.H{"message": "servererror"})
 
 		}
+	case FIND_ACCOUNT_INTENT:
+		bodyBytes,err  := json.Marshal(req.Body)
+	if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
 	}
+
+		var idRequest  IdRequest
+		err = json.Unmarshal(bodyBytes, &idRequest)
+		if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+
+	}
+
+		account, err := api.handleFindAccountIntent(idRequest.Id.Hex())
+		if err != nil {
+   		 ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+    	return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"account found": account})
+	
+	case TRANSACTIONS_INTENT:
+		bodyBytes,err  := json.Marshal(req.Body)
+	if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+	}
+	
+	var transactionsRequest TransactionsReq
+	err = json.Unmarshal(bodyBytes, &transactionsRequest)
+	if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+
+	}
+
+	history, err := api.handleTransactionsIntent(transactionsRequest.AccountID)
+	if err != nil {
+   		 ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+    	return
+}
+	ctx.JSON(http.StatusOK, gin.H{"Transaction history found": history})
+
+ 	case SEARCH_INTENT: 
+		bodyBytes,err  := json.Marshal(req.Body)
+	if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+	}
+
+	var accNameReq AccNameReq
+		err = json.Unmarshal(bodyBytes, &accNameReq)
+		if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+
+	}
+		account, err := api.handleSearchAccountByNameIntent(accNameReq.AccountHolder)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+    		return
+		}
+			ctx.JSON(http.StatusOK, gin.H{"Account   found": account})
+
+	case DEPOSIT_INTENT:
+		bodyBytes,err  := json.Marshal(req.Body)
+	if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+	}
+
+	var depositReq DepositRequest
+	    err = json.Unmarshal(bodyBytes, &depositReq)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+		}
+
+		err = api.handleDepositIntent(depositReq.AccountID, depositReq.Amount)
+		if err != nil{
+					ctx.JSON(http.StatusInternalServerError, gin.H{"message": "servererror"})
+
+		}
+}	
+}
+func (api *ApiManager) handleTransactionsIntent(id string ) (*[]db.Transaction ,error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid account ID format: %v", err)
+	}
+
+	transactions, err := api.accMgr.GetTransactionsHistory(objectID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching transactions: %v", err)
+	}
+
+	return &transactions , nil 
+
+
 }
 
 func (api *ApiManager) handleTransferIntent(from, to string, amount float64) error {
@@ -149,84 +277,58 @@ func (api *ApiManager) handleTransferIntent(from, to string, amount float64) err
 
 }
 
-func TransferFunds(token string, body interface{}) {
-	gptResp := "sendMoney/user123/1234"
-	args := strings.Split(gptResp, "/")
+func (api *ApiManager) handleSearchAccountByNameIntent(name string) ([]*db.BankAccount, error) {
+    // Call the updated SearchAccountByNameOrPhone function
+    accounts, err := api.accMgr.SearchAccountByNameOrPhone(name)
+    if err != nil {
+        return nil, fmt.Errorf("error searching for account: %v", err)
+    }
 
-	url := args[0]
+    // Check if no accounts were found
+    if len(accounts) == 0 {
+        return nil, fmt.Errorf("no accounts found matching the provided name or phone number")
+    }
 
-	if url == "sendMoney" {
-		token := "mockJWTToken"
+    return accounts, nil
+}
 
-		amount, err := strconv.Atoi(args[2])
-		if err != nil {
-			panic(err)
-		}
-
-		reqBody := TransferRequest{
-			From:   token,
-			To:     args[1],
-			Amount: float64(amount),
-		}
-
-		reqBodyBytes, err := json.Marshal(reqBody)
-		if err != nil {
-			panic(err)
-		}
-
-		req, err := http.NewRequest("POST", "/account/transfer/:id", bytes.NewBuffer(reqBodyBytes))
-		if err != nil {
-			panic(err)
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-
-		client := openai.NewClient("sk-proj-JKaZ7i09WvyceQo5zSCdT3BlbkFJxSsFxUuGjeqfBRPN5wlO")
-
-		rules := `
-		You are a bank API.
-
-		If the user wants to transfer, give them:
-		{
-			"url": "string",
-			"body": "object"
-		}
-
-		For transfer, the body is:
-		type TransferRequest struct {
-			From   string  json:"from"
-			To     string  json:"to"
-			Amount float64 json:"amount"
-		}
-
-		The URL is "gobank/account/transfer".
-
-		For listing transactions, the URL is "gobank/account/transactions" and the body is empty.
-	`
-
-		resp, err := client.CreateChatCompletion(
-			context.Background(),
-			openai.ChatCompletionRequest{
-				Model: openai.GPT3Dot5Turbo,
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    openai.ChatMessageRoleSystem,
-						Content: rules,
-					},
-					{
-						Role:    openai.ChatMessageRoleUser,
-						Content: "I want to transfer 100 from John to Jane",
-					},
-				},
-			},
-		)
-		if err != nil {
-			fmt.Printf("ChatCompletion error: %v\n", err)
-			return
-		}
-
-		fmt.Println(resp.Choices[0].Message.Content)
+func (api *ApiManager) handleFindAccountIntent(id string) (*db.BankAccount, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid account ID format: %v", err)
 	}
+
+	account, err := api.accMgr.SearchAccountById(objectID)
+	if err != nil {
+		return nil, fmt.Errorf("error searching for account: %v", err)
+	}
+
+	if account == nil {
+		return nil, fmt.Errorf("account not found")
+	}
+
+	return account, nil
+}
+
+func (api *ApiManager) handleDepositIntent(id string , amount float64) error {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return  fmt.Errorf("invalid account ID format: %v", err)
+	}
+	if amount <= 0 {
+        return fmt.Errorf("amount must be greater than zero")
+    }
+
+    // Perform the deposit operation
+    err = api.accMgr.DepositToAccount(amount, objectID)
+    if err != nil {
+        return fmt.Errorf("error depositing to account: %v", err)
+    }
+
+    return nil
+
+
+	
 }
 
 // func GetAccount(token string, body interface{}) {

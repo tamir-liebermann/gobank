@@ -24,6 +24,7 @@ type BankAccount struct {
 	CreatedAt     time.Time          `bson:"created_at"`
 	UpdatedAt     time.Time          `bson:"updated_at"`
 	Password      string             `bson:"password"`
+	PhoneNumber   string 			 `bson:"phone_number"`
 }
 
 type Transaction struct {
@@ -56,46 +57,48 @@ func InitDB() (*AccManager, error) {
 var singletonClient *mongo.Client
 var once sync.Once
 
+
 func NewManager(uri string) (*AccManager, error) {
 	clientOptions := options.Client().ApplyURI(uri)
-	
 	once.Do(func() {
-	ctx,cancelFunc := context.WithTimeout(context.Background(),3*time.Second)
-		defer cancelFunc()
-		client, err := mongo.Connect(ctx, clientOptions)
+
+		client, err := mongo.Connect(context.TODO(), clientOptions)
 		if err != nil {
 			panic(err)
 		}
 
-		err = client.Ping(ctx, nil)
+		err = client.Ping(context.TODO(), nil)
 		if err != nil {
 			panic(err)
 		}
 
 		singletonClient = client
-
+		
 		fmt.Println("singleton init")
 	})
-
-	db := singletonClient.Database("banktest")
+		
+	db := singletonClient.Database("banktest")	
 	return &AccManager{
-		client:       singletonClient,
+		client:  singletonClient,
 		transactions: db.Collection("transactions"),
-		accounts:     db.Collection("accs"),
+		accounts: db.Collection("accs"),
 	}, nil
 }
-func (m *AccManager) CreateAccount(name string, password string) (string, error) {
 
-	hashedPw, err := utils.HashPassword(password)
-	if err != nil {
+
+func (m *AccManager) CreateAccount(name string, password  string, balance float64 , phoneNumber string) (string, error) {
+
+	hashedPw,err := utils.HashPassword(password)
+	if err !=nil{
 		return "", err
 	}
 	account := BankAccount{
 		AccountHolder: name,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
-		Balance:       10000,
-		Password:      hashedPw,
+		Balance:       balance,
+		Password:      hashedPw ,
+		PhoneNumber:   phoneNumber,
 	}
 
 	acc := m.client.Database("banktest").Collection("accs")
@@ -104,11 +107,11 @@ func (m *AccManager) CreateAccount(name string, password string) (string, error)
 		return "", err
 	}
 	fmt.Printf("Inserted a single document: %v\n", insertResult.InsertedID)
-	oid, ok := insertResult.InsertedID.(primitive.ObjectID)
-	if !ok {
+	oid,ok := insertResult.InsertedID.(primitive.ObjectID)
+	if !ok{
 		panic("mongo severe error!")
 	}
-	return oid.Hex(), nil
+	return oid.Hex(),nil
 }
 
 func (m *AccManager) DeleteAccount(accountNumber string) error {
@@ -144,18 +147,36 @@ func (m *AccManager) DeleteAccountById(id primitive.ObjectID) error {
 	return nil
 }
 
-func (m *AccManager) SearchAccountByName(name string) (*BankAccount, error) {
-	filter := bson.D{{Key: "account_holder", Value: name}}
-	var account BankAccount
-	acc := m.client.Database("banktest").Collection("accs")
-	err := acc.FindOne(context.TODO(), filter).Decode(&account)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
+func (m *AccManager) SearchAccountByNameOrPhone(query string) ([]*BankAccount, error) {
+    regexPattern := primitive.Regex{Pattern: query, Options: "i"}		
+	filter := bson.M{
+        "$or": []bson.M{
+            {"account_holder": regexPattern},
+            {"phone_number": regexPattern},
+        },
+    }   
+	 var accounts []*BankAccount
 
-	return &account, nil
+    acc := m.client.Database("banktest").Collection("accs")
+    cursor, err := acc.Find(context.TODO(), filter)
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(context.TODO())
+
+    for cursor.Next(context.TODO()) {
+        var account BankAccount
+        if err := cursor.Decode(&account); err != nil {
+            return nil, err
+        }
+        accounts = append(accounts, &account)
+    }
+
+    if err := cursor.Err(); err != nil {
+        return nil, err
+    }
+
+    return accounts, nil
 }
 
 func (m *AccManager) SearchAccountById(id primitive.ObjectID) (*BankAccount, error) {
@@ -301,4 +322,32 @@ func (m *AccManager) GetTransactionsHistory(accountId primitive.ObjectID) ([]Tra
 	}
 
 	return transactions, nil
+}
+
+
+func (m *AccManager) DepositToAccount(amount float64, accountId primitive.ObjectID) error {
+    // Ensure the amount is positive
+    if amount <= 0 {
+        return errors.New("deposit amount must be greater than zero")
+    }
+
+    // Define the filter and update
+    filter := bson.M{"_id": accountId}
+    update := bson.M{"$inc": bson.M{"balance": amount}}
+
+    // Get the collection
+    accCollection := m.client.Database("banktest").Collection("accs")
+
+    // Perform the update
+    result, err := accCollection.UpdateOne(context.TODO(), filter, update)
+    if err != nil {
+        return err
+    }
+
+    // Check if any document was modified
+    if result.ModifiedCount == 0 {
+        return errors.New("account not found or no update made")
+    }
+
+    return nil
 }
