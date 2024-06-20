@@ -98,3 +98,17 @@ type DepositRequest struct {
 type DepositResponse struct {
 	Message 	string `json:"message"`
 }
+
+type BalanceRequest struct {
+    AccountID string `json:"_id" binding:"required"`
+	AccountName string `json:"account_holder"`
+}
+
+type BalanceResponse struct {
+    Balance float64 `json:"balance"`
+	Transactions []TransactionInfo `json:"transactions"`
+}
+type TransactionInfo struct {
+    FromAccount string  `json:"from_account"`
+    Amount      float64 `json:"amount"`
+}

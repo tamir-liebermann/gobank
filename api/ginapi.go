@@ -32,11 +32,13 @@ func (api *ApiManager) registerRoutes(server *gin.Engine) {
 
 	accounts.GET("/transactions/:id", api.handleGetTransactionsHistory)
 	accounts.GET("/:id", api.handleGetById)
+	accounts.GET("/balance", api.handleCheckBalance)
 	accounts.GET("/name/:account_holder", api.handleGetByNameOrPhone)
 	accounts.DELETE("/:id", api.handleDeleteById)
 	accounts.POST("/transfer/:id", api.handleTransfer)
 	accounts.POST("/chatgpt", api.handleChatGPTRequest)
 	accounts.POST("/deposit", api.handleDeposit)
+	
 
 	admin := server.Group("/admin")
 	admin.GET("/accounts", api.handleGetAccounts)

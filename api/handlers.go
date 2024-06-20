@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -294,31 +295,28 @@ func (api *ApiManager) handleTransfer(ctx *gin.Context) {
 // @Router /account/transactions/{id} [get]
 // @Security BearerAuth
 func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
-	idParam := ctx.Param("id")
-	id, err := primitive.ObjectIDFromHex(idParam)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid ID format"})
-		return
-	}
+    idParam := ctx.Param("id")
+    id, err := primitive.ObjectIDFromHex(idParam)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+        return
+    }
 
-	transactions, err := api.accMgr.GetTransactionsHistory(id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
-		return
-	}
+    transactions, err := api.accMgr.GetTransactionsHistory(id)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error fetching transactions: %v", err)})
+        return
+    }
 
-	if transactions == nil {
-		ctx.JSON(http.StatusNotFound, ErrorResponse{Message: "Transactions not found"})
-		return
-	}
+    table, err := utils.FormatTransactionsTable(transactions)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
-	// Create AllTransactionsRes instance
-	allTransactionsRes := AllTransactionsRes{
-		Transactions: transactions,
-	}
-
-	ctx.JSON(http.StatusOK, allTransactionsRes)
+    ctx.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(table))
 }
+
 
 
 func (api *ApiManager) handleDeposit(ctx *gin.Context) {
@@ -353,6 +351,50 @@ func (api *ApiManager) handleDeposit(ctx *gin.Context) {
     // Prepare and send the response
     response := DepositResponse{
         Message: "Deposit successful",
+    }
+    ctx.JSON(http.StatusOK, response)
+}
+
+
+func (api *ApiManager) handleCheckBalance(ctx *gin.Context) {
+    var req struct {
+        AccountID   string `json:"_id,omitempty"`
+        AccountName string `json:"account_holder,omitempty"`
+    }
+
+    // Parse the JSON request body
+    if err := ctx.ShouldBindJSON(&req); err != nil {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid request"})
+        return
+    }
+
+    if req.AccountID == "" && req.AccountName == "" {
+        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Account ID or name must be provided"})
+        return
+    }
+
+    // Call handleCheckBalanceIntent
+    balance, transactions, err := api.handleCheckBalanceIntent(req.AccountID, req.AccountName)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: err.Error()})
+        return
+    }
+
+    // Prepare the transaction info
+    transactionInfos := []TransactionInfo{}
+    for _, transaction := range transactions {
+        if transaction.ToAccount.Hex() == req.AccountID {
+            transactionInfos = append(transactionInfos, TransactionInfo{
+                FromAccount: transaction.FromAccount.Hex(),
+                Amount:      transaction.Amount,
+            })
+        }
+    }
+
+    // Prepare and send the response
+    response := BalanceResponse{
+        Balance:      balance,
+        Transactions: transactionInfos,
     }
     ctx.JSON(http.StatusOK, response)
 }

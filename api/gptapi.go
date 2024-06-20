@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/tamir-liebermann/gobank/db"
+	"github.com/tamir-liebermann/gobank/utils"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,6 +22,8 @@ const (
 	TRANSACTIONS_INTENT= "transactions"
 	SEARCH_INTENT="search"
 	DEPOSIT_INTENT= "deposit"
+	BALANCE_CHECK_INTENT= "balance"
+	GET_ALL_ACCOUNTS_INTENT = " all accounts"
 )
 
 // type AgentTransferRequest struct {
@@ -109,6 +112,23 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 				"amount": "float" // must be specified
 			}
 		}
+
+		If the user wants to check his account balance , give them :
+		{
+			"intent": "balance", // must be this keyword
+			"body": {
+				"_id": "string, // must be the id 
+				"balance": "float" // must be specified
+			}
+		}
+
+		If the user is admin and wants to see the all the existing accounts, give them: 
+		{
+			"intent": "all accounts", // must be this keyword
+			"body" :{
+				"_id": "string" // must be the id 
+			}
+		}
 	`
 
 	resp, err := client.CreateChatCompletion(
@@ -185,24 +205,27 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"account found": account})
 	
 	case TRANSACTIONS_INTENT:
-		bodyBytes,err  := json.Marshal(req.Body)
-	if err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
-	}
-	
-	var transactionsRequest TransactionsReq
-	err = json.Unmarshal(bodyBytes, &transactionsRequest)
-	if err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+    bodyBytes, err := json.Marshal(req.Body)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+        return
+    }
 
-	}
+    var transactionsRequest TransactionsReq
+    err = json.Unmarshal(bodyBytes, &transactionsRequest)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+        return
+    }
 
-	history, err := api.handleTransactionsIntent(transactionsRequest.AccountID)
-	if err != nil {
-   		 ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-    	return
-}
-	ctx.JSON(http.StatusOK, gin.H{"Transaction history found": history})
+    historyTable, err := api.handleTransactionsIntent(transactionsRequest.AccountID)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+        return
+    }
+
+    ctx.JSON(http.StatusOK, gin.H{"Transaction history found": historyTable})
+
 
  	case SEARCH_INTENT: 
 		bodyBytes,err  := json.Marshal(req.Body)
@@ -240,22 +263,89 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 					ctx.JSON(http.StatusInternalServerError, gin.H{"message": "servererror"})
 
 		}
+	
+	case BALANCE_CHECK_INTENT:
+    bodyBytes, err := json.Marshal(req.Body)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+        return
+    }
+
+    var balanceReq BalanceRequest
+    err = json.Unmarshal(bodyBytes, &balanceReq)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+        return
+    }
+
+    // Call handleCheckBalanceIntent
+    balance, transactions, err := api.handleCheckBalanceIntent(balanceReq.AccountID, balanceReq.AccountName)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: err.Error()})
+        return
+    }
+
+    transactionInfos := []TransactionInfo{}
+    for _, transaction := range transactions {
+        if transaction.ToAccount.Hex() == balanceReq.AccountID {
+            transactionInfos = append(transactionInfos, TransactionInfo{
+                FromAccount: transaction.FromAccount.Hex(),
+                Amount:      transaction.Amount,
+            })
+        }
+    }
+
+    // Prepare and send the response
+    response := BalanceResponse{
+        Balance:      balance,
+        Transactions: transactionInfos,
+    }
+    ctx.JSON(http.StatusOK, response)
+
+	case GET_ALL_ACCOUNTS_INTENT: 
+	bodyBytes, err := json.Marshal(req.Body)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+        return
+    }
+
+	var bankAccsRes BankAccsRes
+	err = json.Unmarshal(bodyBytes, &bankAccsRes)
+	if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+		}
+
+	accounts, err := api.handleGetAccountsIntent()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to retrieve accounts"})
+		return
+	}
+
+	// Respond with the fetched accounts
+	ctx.JSON(http.StatusOK, accounts)
+	
+
+
+
 }	
 }
-func (api *ApiManager) handleTransactionsIntent(id string ) (*[]db.Transaction ,error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid account ID format: %v", err)
-	}
+func (api *ApiManager) handleTransactionsIntent(id string) (string, error) {
+    objectID, err := primitive.ObjectIDFromHex(id)
+    if err != nil {
+        return "", fmt.Errorf("invalid account ID format: %v", err)
+    }
 
-	transactions, err := api.accMgr.GetTransactionsHistory(objectID)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching transactions: %v", err)
-	}
+    transactions, err := api.accMgr.GetTransactionsHistory(objectID)
+    if err != nil {
+        return "", fmt.Errorf("error fetching transactions: %v", err)
+    }
 
-	return &transactions , nil 
+    table, err := utils.FormatTransactionsTable(transactions)
+    if err != nil {
+        return "", err
+    }
 
-
+    return table, nil
 }
 
 func (api *ApiManager) handleTransferIntent(from, to string, amount float64) error {
@@ -331,54 +421,56 @@ func (api *ApiManager) handleDepositIntent(id string , amount float64) error {
 	
 }
 
-// func GetAccount(token string, body interface{}) {
-// 	gptResp := "getAccount/user123"
-// 	args := strings.Split(gptResp, "/")
+func (api *ApiManager) handleCheckBalanceIntent(accountID, accountName string) (float64, []db.Transaction, error) {
+    var account *db.BankAccount
+    var err error
 
-// 	url := args[0]
+    if accountID != "" {
+        objectID, err := primitive.ObjectIDFromHex(accountID)
+        if err != nil {
+            return 0, nil, fmt.Errorf("invalid account ID format: %v", err)
+        }
+        // Get the account by ID
+        account, err = api.accMgr.SearchAccountById(objectID)
+        if err != nil {
+            return 0, nil, fmt.Errorf("error retrieving account by ID: %v", err)
+        }
+    } else if accountName != "" {
+        // Search account by name or phone
+        accounts, err := api.accMgr.SearchAccountByNameOrPhone(accountName)
+        if err != nil {
+            return 0, nil, fmt.Errorf("error searching for account: %v", err)
+        }
+        if len(accounts) == 0 {
+            return 0, nil, fmt.Errorf("no account found with the provided name")
+        }
+        account = accounts[0] // Assuming we take the first matched account
+    } else {
+        return 0, nil, fmt.Errorf("account ID or name must be provided")
+    }
 
-// 	if url == "getAccount" {
-// 		req, err := http.NewRequest("GET", "gobank/account/name/"+args[1], nil)
-// 		if err != nil {
-// 			panic(err)
-// 		}
+    if account == nil {
+        return 0, nil, fmt.Errorf("account not found")
+    }
 
-// 		req.Header.Set("Authorization", "Bearer "+token)
+    // Retrieve the transactions
+    transactions, err := api.accMgr.GetTransactionsHistory(account.ID)
+    if err != nil {
+        return 0, nil, fmt.Errorf("error retrieving transactions: %v", err)
+    }
 
-// 		client := openai.NewClient("your_openai_api_key")
+    return account.Balance, transactions, nil
+}
 
-// 		rules := `
-// 	You are a bank API.
 
-// 	If the user wants to get account information, give them:
-// 	{
-// 		"url": "string",
-// 		"body": "object"
-// 	}
+func (api *ApiManager) handleGetAccountsIntent( ) ([]db.BankAccount, error) {
+	// Call GetAccounts method to retrieve accounts
+	accounts, err := api.accMgr.GetAccounts()
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve accounts: %v", err)
+	}
+	return accounts, nil
+}
 
-// 	For getting account information, the URL is "gobank/account/name/{account_holder}" and the body is empty.
-// 	`
 
-// 		resp, err := client.CreateChatCompletion(
-// 			context.Background(),
-// 			openai.ChatCompletionRequest{
-// 				Model: openai.GPT3Dot5Turbo,
-// 				Messages: []openai.ChatCompletionMessage{
-// 					{
-// 						Role:    openai.ChatMessageRoleSystem,
-// 						Content: rules,
-// 					},
-// 					{
-// 						Role:    openai.ChatMessageRoleUser,
-// 						Content: "I want to get account information for user123",
-// 					},
-// 				},
-// 			},
-// 		)
-// 		if err != nil {
-// 			fmt.Printf("ChatCompletion error: %v\n", err)
-// 			return
-// 		}
 
-// 	}
-// }

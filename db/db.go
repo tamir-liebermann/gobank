@@ -351,3 +351,22 @@ func (m *AccManager) DepositToAccount(amount float64, accountId primitive.Object
 
     return nil
 }
+
+func (m *AccManager) GetAccountBalance(accountId primitive.ObjectID) (float64, error) {
+    filter := bson.M{"_id": accountId}
+    var account BankAccount
+    acc := m.client.Database("banktest").Collection("accs")
+    err := acc.FindOne(context.TODO(), filter).Decode(&account)
+    if errors.Is(err, mongo.ErrNoDocuments) {
+        return 0, fmt.Errorf("account not found")
+    } else if err != nil {
+        return 0, err
+    }
+
+    return account.Balance, nil
+}
+
+
+
+
+
