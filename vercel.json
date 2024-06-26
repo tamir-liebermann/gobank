@@ -2,22 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "main.go",
+      "src":  "/ginapi(.*)",
       "use": "@vercel/go"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/ginapi(.*)",
-      "dest": "/main"
     },
     {
       "src": "/gptapi(.*)",
-      "dest": "/main"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/main"
+      "use": "@vercel/go"
     }
   ]
 }
