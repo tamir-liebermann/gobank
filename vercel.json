@@ -8,6 +8,11 @@
     {
       "src": "/gptapi(.*)",
       "use": "@vercel/go"
+    },
+    {
+        "src": "main.go",
+        "use": "@vercel/go"
     }
+
   ]
 }
