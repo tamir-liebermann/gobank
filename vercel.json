@@ -15,7 +15,12 @@
      {
       "src": "/gptapi",
       "dest": "gptapi.go"
+     },
+     {
+        "src": "/main",
+        "dest": "main.go"
      }
+
     
   ]
 
