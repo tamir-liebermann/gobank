@@ -4,6 +4,10 @@
     {
       "src": "/api(.*)",
       "use": "@vercel/go"
+    }, 
+    {
+      "src": "main.go",
+      "use": "@vercel/go"
     }
 ],
     "routes": [
@@ -15,11 +19,8 @@
      {
       "src": "/gptapi",
       "dest": "gptapi.go"
-     },
-     {
-        "src": "/main",
-        "dest": "main.go"
      }
+    
 
     
   ]
