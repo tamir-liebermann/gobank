@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/tamir-liebermann/gobank/db"
+	"github.com/tamir-liebermann/gobank/env"
 	"github.com/tamir-liebermann/gobank/utils"
 
 	"github.com/gin-gonic/gin"
@@ -58,6 +59,7 @@ func processGPTResponse(gptResponse *GPTResponse) string {
 
 
 func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
+	spec := env.New()
 	 var chatReq ChatReq
     if err := ctx.ShouldBindJSON(&chatReq); err != nil {
         ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -66,7 +68,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
     userInput := strings.ToLower(strings.TrimSpace(chatReq.UserText))
 
 
-	client := openai.NewClient("sk-proj-4uI52DxoSVvkMSlx7vAqT3BlbkFJdk9t7YDPID1Ome55jWCL")
+	client := openai.NewClient(spec.OpenaiApiKey)
 
 	rules := `
 		You are a bank API, you reply in json objects only, if unsure ask for clarification.

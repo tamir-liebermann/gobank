@@ -9,9 +9,13 @@ import (
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/tamir-liebermann/gobank/db"
+	"github.com/tamir-liebermann/gobank/env"
 	"github.com/tamir-liebermann/gobank/utils"
 	"github.com/twilio/twilio-go"
 )
+
+
+
 
 type ApiManager struct {
 	accMgr        *db.AccManager
@@ -19,9 +23,12 @@ type ApiManager struct {
 }
 
 func NewApiManager(mgr *db.AccManager) *ApiManager {
+	 spec := env.New()
+
+
 	twilioClient := twilio.NewRestClientWithParams(twilio.ClientParams{
-		Username: "AC009bc3c85f2212a8f4cdc0c32be81ef8",
-		Password: "f4349fb88ade7717d074d8ff1c47a74f",
+		Username: spec.TwilioAccSid,
+		Password: spec.TwilioAuth,
 	})
 
 	return &ApiManager{

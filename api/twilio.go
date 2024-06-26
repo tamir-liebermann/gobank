@@ -10,12 +10,14 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tamir-liebermann/gobank/env"
 )
 
 func (api *ApiManager) sendWhatsAppMessage(to, message string) error {
-    accountSid := "AC009bc3c85f2212a8f4cdc0c32be81ef8"
-    authToken := "f4349fb88ade7717d074d8ff1c47a74f"
-    from := "whatsapp:+14155238886"
+	spec := env.New() 
+    accountSid := spec.TwilioAccSid
+    authToken := spec.TwilioAuth
+    from := spec.TwilioPhoneNum
 
     urlStr := fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", accountSid)
 
