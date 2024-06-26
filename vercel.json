@@ -2,8 +2,8 @@
   "version": 2,
   "builds": [
     {
-      "src": "main.go",
-      "use": "@vercel/go"
+      "src": "/api(.*)",
+      "destination": "/api/ginapi.go"
     }
   ]
 }
