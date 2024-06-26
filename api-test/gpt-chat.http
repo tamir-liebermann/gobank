@@ -1,7 +1,7 @@
 POST http://localhost:8080/account/chatgpt
 Content-Type: application/json
-authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTg5ODA2ODQsInVzZXJJZCI6IjY2NzE5YmNjODE2MTg4OGQxMTk5MDRlZSIsInVzZXJuYW1lIjoiRG9uQ29yIn0.EjkSe0W6Kd-oT-aCvLuEmESL7xJixsmdKH_2va1SSFM
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTk1NTkzMDMsInVzZXJJZCI6IjY2NzE5YmNjODE2MTg4OGQxMTk5MDRlZSIsInVzZXJuYW1lIjoiRG9uQ29yIn0.uVhhMJnhyvAaplk8RPzwu7EoP4cUToonLRKxECiyTTs
 
 {
-    "user_text": "  check this account balance 66719bcc8161888d119904ee "
+    "user_text": "  find this account 667167eaafe345816d333b3d    "
 }

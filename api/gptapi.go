@@ -23,7 +23,7 @@ const (
 	SEARCH_INTENT="search"
 	DEPOSIT_INTENT= "deposit"
 	BALANCE_CHECK_INTENT= "balance"
-	GET_ALL_ACCOUNTS_INTENT = " all accounts"
+	GET_ALL_ACCOUNTS_INTENT = "all accounts"
 )
 
 // type AgentTransferRequest struct {
@@ -54,14 +54,17 @@ func processGPTResponse(gptResponse *GPTResponse) string {
 	return ""
 }
 
-func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
-	var chatReq ChatReq
-	if err := ctx.ShouldBindJSON(&chatReq); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
 
-	userInput := strings.ToLower(strings.TrimSpace(chatReq.UserText))
+
+
+func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
+	 var chatReq ChatReq
+    if err := ctx.ShouldBindJSON(&chatReq); err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    userInput := strings.ToLower(strings.TrimSpace(chatReq.UserText))
+
 
 	client := openai.NewClient("sk-proj-4uI52DxoSVvkMSlx7vAqT3BlbkFJdk9t7YDPID1Ome55jWCL")
 
@@ -160,9 +163,11 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
 	}
 
+	
+
 	accountId := ctx.GetString("userId")
 	// todo use transfer req
-
+	var response string	
 	switch req.Intent {
 	case TRANSFER_INTENT:
 		bodyBytes,err  := json.Marshal(req.Body)
@@ -184,6 +189,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 					ctx.JSON(http.StatusInternalServerError, gin.H{"message": "servererror"})
 
 		}
+		  response = "Transfer request processed successfully"
 	case FIND_ACCOUNT_INTENT:
 		bodyBytes,err  := json.Marshal(req.Body)
 	if err != nil {
@@ -202,7 +208,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
    		 ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
     	return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"account found": account})
+        response = fmt.Sprintf("Account found: %v", account)
 	
 	case TRANSACTIONS_INTENT:
     bodyBytes, err := json.Marshal(req.Body)
@@ -224,8 +230,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
         return
     }
 
-    ctx.JSON(http.StatusOK, gin.H{"Transaction history found": historyTable})
-
+ response = historyTable
 
  	case SEARCH_INTENT: 
 		bodyBytes,err  := json.Marshal(req.Body)
@@ -244,7 +249,12 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
     		return
 		}
-			ctx.JSON(http.StatusOK, gin.H{"Account   found": account})
+         accountJSON, err := json.Marshal(account)
+        if err != nil {
+            ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to marshal account"})
+            return
+        }
+        response = string(accountJSON)
 
 	case DEPOSIT_INTENT:
 		bodyBytes,err  := json.Marshal(req.Body)
@@ -263,7 +273,8 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 					ctx.JSON(http.StatusInternalServerError, gin.H{"message": "servererror"})
 
 		}
-	
+	        response = "Deposit processed successfully"
+
 	case BALANCE_CHECK_INTENT:
     bodyBytes, err := json.Marshal(req.Body)
     if err != nil {
@@ -296,12 +307,11 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
     }
 
     // Prepare and send the response
-    response := BalanceResponse{
+    balResponse := BalanceResponse{
         Balance:      balance,
         Transactions: transactionInfos,
     }
-    ctx.JSON(http.StatusOK, response)
-
+ 	response = fmt.Sprintf("balance found: %v$", balResponse)
 	case GET_ALL_ACCOUNTS_INTENT: 
 	bodyBytes, err := json.Marshal(req.Body)
     if err != nil {
@@ -322,12 +332,10 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 	}
 
 	// Respond with the fetched accounts
-	ctx.JSON(http.StatusOK, accounts)
+     response = fmt.Sprintf("Accounts: %v", accounts)
 	
-
-
-
-}	
+}
+ctx.Set("response", response)
 }
 func (api *ApiManager) handleTransactionsIntent(id string) (string, error) {
     objectID, err := primitive.ObjectIDFromHex(id)

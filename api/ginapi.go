@@ -10,15 +10,23 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/tamir-liebermann/gobank/db"
 	"github.com/tamir-liebermann/gobank/utils"
+	"github.com/twilio/twilio-go"
 )
 
 type ApiManager struct {
-	accMgr *db.AccManager
+	accMgr        *db.AccManager
+	twilioClient  *twilio.RestClient
 }
 
 func NewApiManager(mgr *db.AccManager) *ApiManager {
+	twilioClient := twilio.NewRestClientWithParams(twilio.ClientParams{
+		Username: "AC009bc3c85f2212a8f4cdc0c32be81ef8",
+		Password: "f4349fb88ade7717d074d8ff1c47a74f",
+	})
+
 	return &ApiManager{
-		accMgr: mgr,
+		accMgr:       mgr,
+		twilioClient: twilioClient,
 	}
 }
 
@@ -42,6 +50,8 @@ func (api *ApiManager) registerRoutes(server *gin.Engine) {
 
 	admin := server.Group("/admin")
 	admin.GET("/accounts", api.handleGetAccounts)
+	server.POST("/webhook", api.handleTwilioWebhook)
+	
 
 }
 
