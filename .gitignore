@@ -4,4 +4,4 @@
 *debug*
 /apiKey
 /.env
-*.env*
+.env
