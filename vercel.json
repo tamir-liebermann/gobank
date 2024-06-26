@@ -4,25 +4,8 @@
     {
       "src": "/api",
       "use": "@vercel/go"
-    }, 
-    {
-      "src": "main.go",
-      "use": "@vercel/go"
     }
-],
-    "routes": [
-    {
-      "src": "/ginapi",
-      "dest": "ginapi.go"
-    },
-
-     {
-      "src": "/gptapi",
-      "dest": "gptapi.go"
-     }
-    
-
-    
-  ]
+]
+   
 
 }
