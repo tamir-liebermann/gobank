@@ -9,12 +9,12 @@
     "routes": [
     {
       "src": "/ginapi",
-      "destination": "ginapi.go"
+      "dest": "ginapi.go"
     },
 
      {
       "src": "/gptapi",
-      "destination": "gptapi.go"
+      "dest": "gptapi.go"
      }
     
   ]
