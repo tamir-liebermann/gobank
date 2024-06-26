@@ -3,4 +3,4 @@
 /go.sum
 *debug*
 /apiKey
-.env
+/.env
