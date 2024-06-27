@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tamir-liebermann/gobank/env"
 	"github.com/tamir-liebermann/gobank/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -42,7 +43,9 @@ type AccManager struct {
 }
 
 func InitDB() (*AccManager, error) {
-	 mgr, err := NewManager("mongodb+srv://tamirlieb2:tamir147@cluster0.im9fd2n.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+	spec := env.New()
+
+	 mgr, err := NewManager(spec.MongoSecret)
 	//mgr, err := NewManager("mongodb://localhost:27017")
 	if err != nil {
 		log.Fatal(err)

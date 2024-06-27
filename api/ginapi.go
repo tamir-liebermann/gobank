@@ -4,6 +4,7 @@ import (
 	// "log"
 
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
@@ -82,9 +83,9 @@ func authenticate(context *gin.Context) {
 }
 
 func (api *ApiManager) Run() {
-
+	port:= os.Getenv("PORT")
 	server := gin.Default()
 	api.registerRoutes(server)
 
-	server.Run(":8080") //localhost:8080
+	server.Run(port) //localhost:8080
 }
