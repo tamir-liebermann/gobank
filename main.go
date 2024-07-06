@@ -1,25 +1,35 @@
 package main
 
 import (
+	"log"
+
+	"github.com/gin-gonic/gin"
 	"github.com/tamir-liebermann/gobank/api"
 	"github.com/tamir-liebermann/gobank/db"
-	_ "github.com/tamir-liebermann/gobank/docs"
 )
 
-// @title GoBank API
-// @version 1.0
-// @description This is a sample server for a banking application.
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @BasePath /
+
+
+
+
+
+// indexHandler responds to requests with our greeting.
+
 func main() {
+	gin.SetMode(gin.ReleaseMode)
+	
+     
 
-	accMgr, err := db.InitDB()
-	if err != nil {
-		panic(err)
-	}
+    // Initialize database, API manager, and Gin router
+    accMgr, err := db.InitDB()
+    if err != nil {
+        log.Fatalf("Error initializing database: %v", err)
+    }
 
-	apiMgr := api.NewApiManager(accMgr)
-	apiMgr.Run()
+    apiMgr := api.NewApiManager(accMgr)
+    router := gin.Default()
+    apiMgr.RegisterRoutes(router)
+
+    // Start the server
+    apiMgr.Run()
 }

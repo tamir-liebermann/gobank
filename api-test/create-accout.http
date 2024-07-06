@@ -1,9 +1,9 @@
-POST http://localhost:8080/create
+POST https://gobank-tamir-42opbff6wa-zf.a.run.app/create
 Content-Type: application/json
 
 {
-    "user_name": "DonCor",
-    "password": "tom",
-    "balance": 1500,
-    "phone_number": "0507766723"
+    "user_name": "cloud",
+    "password": "shama",
+    "balance": 100000000,
+    "phone_number": "0547766343"
 }

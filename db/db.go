@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	
 	"sync"
 	"time"
 
@@ -44,9 +45,8 @@ type AccManager struct {
 
 func InitDB() (*AccManager, error) {
 	spec := env.New()
-
 	 mgr, err := NewManager(spec.MongoSecret)
-	//mgr, err := NewManager("mongodb://localhost:27017")
+	// mgr, err := NewManager("mongodb://localhost:27017")
 	if err != nil {
 		log.Fatal(err)
 	}

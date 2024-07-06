@@ -1,6 +1,6 @@
-POST http://localhost:8080/account/chatgpt
+POST http://localhost:5252/account/chatgpt
 Content-Type: application/json
-authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTk1NTkzMDMsInVzZXJJZCI6IjY2NzE5YmNjODE2MTg4OGQxMTk5MDRlZSIsInVzZXJuYW1lIjoiRG9uQ29yIn0.uVhhMJnhyvAaplk8RPzwu7EoP4cUToonLRKxECiyTTs
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjA1MTQ1MDYsInVzZXJJZCI6IjY2ODkwMzRhYmJjNWU2ODdkZWUzNTk1ZSIsInVzZXJuYW1lIjoidGVzdDIifQ.kUZq1q2oQo-zc8TOBh_Yx5igg2Zo66PZHo3n_RZA69k
 
 {
     "user_text": "  find this account 667167eaafe345816d333b3d    "

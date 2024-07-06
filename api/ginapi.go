@@ -38,7 +38,7 @@ func NewApiManager(mgr *db.AccManager) *ApiManager {
 	}
 }
 
-func (api *ApiManager) registerRoutes(server *gin.Engine) {
+func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	server.POST("/create", api.handleCreateAccount)
 	server.POST("/login", api.handleLogin)
@@ -59,6 +59,7 @@ func (api *ApiManager) registerRoutes(server *gin.Engine) {
 	admin := server.Group("/admin")
 	admin.GET("/accounts", api.handleGetAccounts)
 	server.POST("/webhook", api.handleTwilioWebhook)
+	server.GET("/health", api.healthCheckHandler)
 	
 
 }
@@ -83,9 +84,14 @@ func authenticate(context *gin.Context) {
 }
 
 func (api *ApiManager) Run() {
-	port:= os.Getenv("PORT")
 	server := gin.Default()
-	api.registerRoutes(server)
+	api.RegisterRoutes(server)
 
-	server.Run(port) //localhost:8080
+	port := os.Getenv("PORT")
+    if port == "" {
+        port = "5252"
+    }
+
+    server.Run(":" + port)
 }
+

@@ -4,3 +4,5 @@
 *debug*
 /apiKey
 .env
+.vercel
+/app.yaml

@@ -1,11 +1,11 @@
-version: "3.8"
+version: '3.8'
+
 services:
-  mongodb:
-    image: mongo
-    container_name: mongodb
-    restart: always
+  gobank:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "27017:27017"
-    # environment:
-    #   MONGO_INITDB_ROOT_USERNAME: root
-    #   MONGO_INITDB_ROOT_PASSWORD: example
+      - "5252:5252"
+    environment:
+      - PORT=5252

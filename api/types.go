@@ -117,3 +117,7 @@ type ChatReq struct {
 	UserText string `json:"user_text"`
 	From 	string 	`json:"from"`
 }
+
+type HealthResponse struct {
+    Status string `json:"status"`
+}

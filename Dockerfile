@@ -1,32 +1,34 @@
-# Use the official Golang image to create a build artifact
-FROM golang:1.22.1 AS build
+# Start with the official Golang image
+FROM golang:1.22.1 as build
 
-# Set the Current Working Directory inside the container
+# Set the working directory inside the container
 WORKDIR /app
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
 
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
+# Download dependencies
 RUN go mod download
 
-# Copy the source from the current directory to the Working Directory inside the container
+# Copy the rest of the source code
 COPY . .
 
-# Build the Go app
-RUN go build -o main .
+# Build the application and ensure it's executable
+RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gobank
 
-# Start a new stage from scratch
-FROM alpine:latest
+# Use a minimal base image to run the application
+# FROM gcr.io/distroless/base-debian10
 
-# Set the Current Working Directory inside the container
-WORKDIR /root/
+# Copy the compiled binary to the minimal base image
+# COPY --from=build /app/api /app/api
 
-# Copy the Pre-built binary file from the previous stage
-COPY --from=build /app/main .
+# # Set the entrypoint
+# ENTRYPOINT ["app/api"]
 
-# Expose port 8080 to the outside world
-EXPOSE 8080
+# Set the port the application listens on
+ENV PORT 5252
 
-# Command to run the executable
-CMD ["./main"]
+# Expose the port
+EXPOSE 5252
+
+CMD ["/docker-gobank"]

@@ -37,23 +37,6 @@ type GenericRequst struct {
 	Body   map[string]interface{} `json:"body"`
 }
 
-var urlMap = map[string]string{
-	"create account":                "http://localhost:8080/create",
-	"login":                         "http://localhost:8080/login",
-	"get account by ID":             "http://localhost:8080/account/:id",
-	"get account by name":           "http://localhost:8080/account/name/:account_holder",
-	"delete account by ID":          "http://localhost:8080/account/:id",
-	"transfer funds":                "http://localhost:8080/account/transfer/:id",
-	"get transactions history":      "http://localhost:8080/account/transactions/:id",
-	"get all accounts (admin only)": "http://localhost:8080/admin/accounts",
-}
-
-func processGPTResponse(gptResponse *GPTResponse) string {
-	if len(gptResponse.Choices) > 0 {
-		return gptResponse.Choices[0].Text
-	}
-	return ""
-}
 
 
 
