@@ -45,7 +45,7 @@ type CreateAccountRequest struct {
 }
 
 type TransferRequest struct {
-	From   string  `json:"from,omitempty"`
+	From   string  `json:"from"`
 	To     string  `json:"to"`
 	Amount float64 `json:"amount"`
 }

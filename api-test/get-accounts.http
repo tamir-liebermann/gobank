@@ -1,2 +1,2 @@
-GET http://localhost:8080/admin/accounts
+GET https://gobank-tamir-42opbff6wa-zf.a.run.app//admin/accounts
 authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTkyOTYxMTYsInVzZXJJZCI6IjY2NzE5YmNjODE2MTg4OGQxMTk5MDRlZSIsInVzZXJuYW1lIjoiRG9uQ29yIn0.ToFKiYeqdiDLgTt98qpm43UDr9jG0LWsOnjk40uvpRk

@@ -256,7 +256,7 @@ func (api *ApiManager) handleGetAccounts(ctx *gin.Context) {
 // @Failure 400 {object} ErrorResponse "Bad request"
 // @Failure 404 {object} ErrorResponse "Invalid account ID"
 // @Failure 500 {object} ErrorResponse "Internal server error"
-// @Router /account/transfer/{id} [post]
+// @Router /account/transfer [post]
 // @Security BearerAuth
 func (api *ApiManager) handleTransfer(ctx *gin.Context) {
 	var req TransferRequest
@@ -267,6 +267,8 @@ func (api *ApiManager) handleTransfer(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		return
 	}
+    	log.Printf("Received transfer request: From=%s To=%s Amount=%f", req.From, req.To, req.Amount)
+
 
 	fromAccountID, err := primitive.ObjectIDFromHex(req.From)
 	if err != nil {
