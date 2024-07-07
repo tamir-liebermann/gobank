@@ -15,6 +15,153 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/account/balance": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Check the balance of an account and list recent transactions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Check account balance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "accountId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Account Holder Name",
+                        "name": "accountHolder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.BalanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/account/chatgpt": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Handle a chat request using OpenAI GPT-3.5 model",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Handle chat request",
+                "parameters": [
+                    {
+                        "description": "User's text",
+                        "name": "user_text",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Response",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/account/deposit": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deposit a specified amount to an account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Deposit to an account",
+                "parameters": [
+                    {
+                        "description": "Deposit Request",
+                        "name": "deposit",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.DepositRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.DepositResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error depositing to account",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/account/name/{account_holder}": {
             "get": {
                 "security": [
@@ -27,7 +174,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "summary": "Get account by account holder's name",
-                "operationId": "get-account-by-name",
+                "operationId": "get-account-by-name-or-phone",
                 "parameters": [
                     {
                         "type": "string",
@@ -109,7 +256,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/account/transfer/{id}": {
+        "/account/transfer": {
             "post": {
                 "security": [
                     {
@@ -134,13 +281,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/api.TransferRequest"
                         }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Account ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -338,11 +478,6 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "login your account via username and password",
                 "consumes": [
                     "application/json"
@@ -404,6 +539,20 @@ const docTemplate = `{
                 }
             }
         },
+        "api.BalanceResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.TransactionInfo"
+                    }
+                }
+            }
+        },
         "api.BankAccRes": {
             "type": "object",
             "properties": {
@@ -426,10 +575,38 @@ const docTemplate = `{
         "api.CreateAccountRequest": {
             "type": "object",
             "properties": {
+                "balance": {
+                    "type": "number"
+                },
                 "password": {
                     "type": "string"
                 },
+                "phone_number": {
+                    "type": "string"
+                },
                 "user_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.DepositRequest": {
+            "type": "object",
+            "properties": {
+                "_id": {
+                    "type": "string"
+                },
+                "amount": {
+                    "type": "number"
+                }
+            }
+        },
+        "api.DepositResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "message": {
                     "type": "string"
                 }
             }
@@ -464,16 +641,27 @@ const docTemplate = `{
                 }
             }
         },
+        "api.TransactionInfo": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "from_account": {
+                    "type": "string"
+                }
+            }
+        },
         "api.TransferRequest": {
             "type": "object",
             "properties": {
                 "amount": {
                     "type": "number"
                 },
-                "from_account_id": {
+                "from": {
                     "type": "string"
                 },
-                "to_account_id": {
+                "to": {
                     "type": "string"
                 }
             }
@@ -494,6 +682,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                },
+                "phoneNumber": {
                     "type": "string"
                 },
                 "updatedAt": {
@@ -537,8 +728,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "GoBank API",
-	Description:      "This is a sample server for a banking application.",
+	Title:            "gobank",
+	Description:      "This is the main function that initializes the database, API manager, and starts the Gin server.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

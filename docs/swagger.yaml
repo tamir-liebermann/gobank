@@ -6,6 +6,15 @@ definitions:
           $ref: '#/definitions/db.Transaction'
         type: array
     type: object
+  api.BalanceResponse:
+    properties:
+      balance:
+        type: number
+      transactions:
+        items:
+          $ref: '#/definitions/api.TransactionInfo'
+        type: array
+    type: object
   api.BankAccRes:
     properties:
       bank_account:
@@ -20,9 +29,27 @@ definitions:
     type: object
   api.CreateAccountRequest:
     properties:
+      balance:
+        type: number
       password:
         type: string
+      phone_number:
+        type: string
       user_name:
+        type: string
+    type: object
+  api.DepositRequest:
+    properties:
+      _id:
+        type: string
+      amount:
+        type: number
+    type: object
+  api.DepositResponse:
+    properties:
+      amount:
+        type: number
+      message:
         type: string
     type: object
   api.ErrorResponse:
@@ -44,13 +71,20 @@ definitions:
       user_name:
         type: string
     type: object
+  api.TransactionInfo:
+    properties:
+      amount:
+        type: number
+      from_account:
+        type: string
+    type: object
   api.TransferRequest:
     properties:
       amount:
         type: number
-      from_account_id:
+      from:
         type: string
-      to_account_id:
+      to:
         type: string
     type: object
   db.BankAccount:
@@ -64,6 +98,8 @@ definitions:
       id:
         type: string
       password:
+        type: string
+      phoneNumber:
         type: string
       updatedAt:
         type: string
@@ -83,8 +119,9 @@ definitions:
     type: object
 info:
   contact: {}
-  description: This is a sample server for a banking application.
-  title: GoBank API
+  description: This is the main function that initializes the database, API manager,
+    and starts the Gin server.
+  title: gobank
   version: "1.0"
 paths:
   /account/{id}:
@@ -145,10 +182,102 @@ paths:
       security:
       - BearerAuth: []
       summary: Get account by ID
+  /account/balance:
+    get:
+      consumes:
+      - application/json
+      description: Check the balance of an account and list recent transactions
+      parameters:
+      - description: Account ID
+        in: query
+        name: accountId
+        type: string
+      - description: Account Holder Name
+        in: query
+        name: accountHolder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.BalanceResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Check account balance
+  /account/chatgpt:
+    post:
+      consumes:
+      - application/json
+      description: Handle a chat request using OpenAI GPT-3.5 model
+      parameters:
+      - description: User's text
+        in: body
+        name: user_text
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Response
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Handle chat request
+  /account/deposit:
+    post:
+      consumes:
+      - application/json
+      description: Deposit a specified amount to an account
+      parameters:
+      - description: Deposit Request
+        in: body
+        name: deposit
+        required: true
+        schema:
+          $ref: '#/definitions/api.DepositRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.DepositResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Error depositing to account
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deposit to an account
   /account/name/{account_holder}:
     get:
       description: Retrieve account details by the account holder's name
-      operationId: get-account-by-name
+      operationId: get-account-by-name-or-phone
       parameters:
       - description: Account Holder's Name
         in: path
@@ -205,7 +334,7 @@ paths:
       security:
       - BearerAuth: []
       summary: Get transactions history for an account
-  /account/transfer/{id}:
+  /account/transfer:
     post:
       consumes:
       - application/json
@@ -218,11 +347,6 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/api.TransferRequest'
-      - description: Account ID
-        in: path
-        name: id
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -324,8 +448,6 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Login your account
 securityDefinitions:
   BearerAuth:

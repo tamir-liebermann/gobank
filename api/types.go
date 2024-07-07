@@ -99,6 +99,7 @@ type DepositRequest struct {
 
 type DepositResponse struct {
 	Message 	string `json:"message"`
+	Amount 		float64 `json:"amount"`
 }
 
 type GPTRequest struct {
@@ -115,7 +116,7 @@ type GPTResponse struct {
 
 type ChatReq struct {
 	UserText string `json:"user_text"`
-	From 	string 	`json:"from"`
+
 }
 
 type HealthResponse struct {

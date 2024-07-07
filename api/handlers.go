@@ -73,7 +73,6 @@ func (api *ApiManager) handleCreateAccount(ctx *gin.Context) {
 // @Failure 401 {object} ErrorResponse "Unauthorized"
 // @Failure 500 {object} ErrorResponse "Internal server error"
 // @Router /login [post]
-// @Security BearerAuth
 func (api *ApiManager) handleLogin(ctx *gin.Context) {
     var req LoginRequest
 
@@ -170,7 +169,7 @@ func (api *ApiManager) handleGetById(ctx *gin.Context) {
 
 // @Summary Get account by account holder's name
 // @Description Retrieve account details by the account holder's name
-// @ID get-account-by-name
+// @ID get-account-by-name-or-phone
 // @Produce json
 // @Param account_holder path string true "Account Holder's Name"
 // @Success 200 {object} BankAccRes    "Account found!"
@@ -251,7 +250,6 @@ func (api *ApiManager) handleGetAccounts(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body TransferRequest true "Transfer Request"
-// @Param id path string true "Account ID"
 // @Success 200 {object} BankAccRes
 // @Failure 400 {object} ErrorResponse "Bad request"
 // @Failure 404 {object} ErrorResponse "Invalid account ID"
@@ -325,7 +323,17 @@ func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
 }
 
 
-
+// handleDeposit handles deposit requests
+// @Summary Deposit to an account
+// @Description Deposit a specified amount to an account
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param deposit body DepositRequest true "Deposit Request"
+// @Success 200 {object} DepositResponse
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 500 {object} ErrorResponse "Error depositing to account"
+// @Router /account/deposit [post]
 func (api *ApiManager) handleDeposit(ctx *gin.Context) {
     var req DepositRequest
 
@@ -358,30 +366,34 @@ func (api *ApiManager) handleDeposit(ctx *gin.Context) {
     // Prepare and send the response
     response := DepositResponse{
         Message: "Deposit successful",
+        Amount:  req.Amount,
     }
     ctx.JSON(http.StatusOK, response)
 }
 
-
+// handleCheckBalance checks the balance of an account
+// @Summary Check account balance
+// @Description Check the balance of an account and list recent transactions
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param accountId query string false "Account ID"
+// @Param accountHolder query string false "Account Holder Name"
+// @Success 200 {object} BalanceResponse
+// @Failure 400 {object} ErrorResponse "Invalid request"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /account/balance [get]
 func (api *ApiManager) handleCheckBalance(ctx *gin.Context) {
-    var req struct {
-        AccountID   string `json:"_id,omitempty"`
-        AccountName string `json:"account_holder,omitempty"`
-    }
+     accountID := ctx.Query("accountId")
+    accountName := ctx.Query("accountName")
 
-    // Parse the JSON request body
-    if err := ctx.ShouldBindJSON(&req); err != nil {
-        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid request"})
-        return
-    }
-
-    if req.AccountID == "" && req.AccountName == "" {
+    if accountID == "" && accountName == "" {
         ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Account ID or name must be provided"})
         return
     }
 
     // Call handleCheckBalanceIntent
-    balance, transactions, err := api.handleCheckBalanceIntent(req.AccountID, req.AccountName)
+    balance, transactions, err := api.handleCheckBalanceIntent(accountID, accountName)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: err.Error()})
         return
@@ -390,7 +402,7 @@ func (api *ApiManager) handleCheckBalance(ctx *gin.Context) {
     // Prepare the transaction info
     transactionInfos := []TransactionInfo{}
     for _, transaction := range transactions {
-        if transaction.ToAccount.Hex() == req.AccountID {
+        if transaction.ToAccount.Hex() == accountID {
             transactionInfos = append(transactionInfos, TransactionInfo{
                 FromAccount: transaction.FromAccount.Hex(),
                 Amount:      transaction.Amount,

@@ -41,6 +41,16 @@ type GenericRequst struct {
 
 
 
+// @Summary Handle chat request
+// @Description Handle a chat request using OpenAI GPT-3.5 model
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user_text body string true "User's text"
+// @Success 200 {string} string "Response"
+// @Failure 400 {object} ErrorResponse "Bad request"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /account/chatgpt [post]
 func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 	spec := env.New()
 	 var chatReq ChatReq
@@ -320,7 +330,10 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
      response = fmt.Sprintf("Accounts: %v", accounts)
 	
 }
-ctx.Set("response", response)
+	ctx.JSON(http.StatusOK, gin.H{"response": response})
+	ctx.Set("response", response) // Set response in Gin context for retrieval
+	ctx.Next()
+
 }
 func (api *ApiManager) handleTransactionsIntent(id string) (string, error) {
     objectID, err := primitive.ObjectIDFromHex(id)
