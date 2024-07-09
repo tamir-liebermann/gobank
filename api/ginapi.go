@@ -3,9 +3,9 @@ package api
 import (
 	// "log"
 
+	
 	"net/http"
 	"os"
-
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -91,6 +91,8 @@ func (api *ApiManager) Run() {
     if port == "" {
         port = "5252"
     }
+	
+
 
     server.Run(":" + port)
 }

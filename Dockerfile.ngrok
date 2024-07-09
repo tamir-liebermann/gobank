@@ -1,0 +1,8 @@
+# Use the official ngrok image
+FROM ngrok/ngrok
+
+# Optionally, copy configuration files if needed
+# COPY src/ngrok/ngrok.yml /etc/ngrok.yml
+
+# Set the command to start ngrok listening on port 5252
+CMD ["http", "gobank:5252"]

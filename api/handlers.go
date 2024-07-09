@@ -257,6 +257,7 @@ func (api *ApiManager) handleGetAccounts(ctx *gin.Context) {
 // @Router /account/transfer [post]
 // @Security BearerAuth
 func (api *ApiManager) handleTransfer(ctx *gin.Context) {
+    log.Println("transferHandler called")
 	var req TransferRequest
 
 	// Use ShouldBindJSON to parse the request body

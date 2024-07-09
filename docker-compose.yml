@@ -1,11 +1,24 @@
-version: '3.8'
+
 
 services:
   gobank:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gobank
     ports:
       - "5252:5252"
     environment:
       - PORT=5252
+      
+
+  ngrok:
+    build:
+      context: .
+      dockerfile: Dockerfile.ngrok
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    environment:
+      - NGROK_AUTHTOKEN=2iFUincbOHJjex0YuE2AmH8UsLM_4KpFXwR5hLhNXnjLvuJmc 
+    command: ["http", "gobank:5252"]
+    ports:
+      - "4040:4040"

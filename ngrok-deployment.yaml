@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ngrok
+  labels:
+    app: ngrok
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ngrok
+  template:
+    metadata:
+      labels:
+        app: ngrok
+    spec:
+      containers:
+        - name: ngrok
+          image: ngrok/ngrok:latest
+          command: ["http", "https://ngrok-image-42opbff6wa-zf.a.run.app"]
+          ports:
+            - containerPort: 4040  # Ngrok dashboard port

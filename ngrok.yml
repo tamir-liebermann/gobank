@@ -1,0 +1,7 @@
+version: "2"
+authtoken: 2iFUincbOHJjex0YuE2AmH8UsLM_4KpFXwR5hLhNXnjLvuJmc 
+tunnels:
+  gobank:
+    proto: http
+    addr: 5252
+    hostname: musical-kingfish-actually.ngrok-free.app

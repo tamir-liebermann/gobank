@@ -4,7 +4,7 @@ authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjA1MTQ1MDYsInVz
 
 
 {
-    "from": "66891bf758b33a533d32b470",
-    "to": "668907a35ee2816599879215",
+    "from": "668907a35ee2816599879215",
+    "to": "66891bf758b33a533d32b470",
     "amount": 1500
 }

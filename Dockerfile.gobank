@@ -28,7 +28,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-gobank
 # Set the port the application listens on
 ENV PORT 5252
 
+
 # Expose the port
 EXPOSE 5252
 
-CMD ["/docker-gobank"]
+
+# Start the script
+CMD ["/docker-gobank"] 
