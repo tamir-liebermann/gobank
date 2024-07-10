@@ -307,6 +307,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
         Transactions: transactionInfos,
     }
  	response = fmt.Sprintf("balance found: %v$", balResponse)
+	
 	case GET_ALL_ACCOUNTS_INTENT: 
 	bodyBytes, err := json.Marshal(req.Body)
     if err != nil {

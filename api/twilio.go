@@ -21,11 +21,16 @@ func (api *ApiManager) sendWhatsAppMessage(to, message string) error {
 
     urlStr := fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", accountSid)
 
-    // Construct the payload using url.Values
-    data := url.Values{}
-    data.Set("To", to)
-    data.Set("From", from)
-    data.Set("Body", message)
+    maxCharsPerMessage := 1600
+	messageParts := splitMessage(message, maxCharsPerMessage)
+
+	// Iterate over each message part and send it
+	for i, part := range messageParts {
+		// Construct payload
+		data := url.Values{}
+		data.Set("To", to)
+		data.Set("From", from)
+		data.Set("Body", part)
 
     req, err := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode()))
     if err != nil {
@@ -42,13 +47,27 @@ func (api *ApiManager) sendWhatsAppMessage(to, message string) error {
     defer resp.Body.Close()
 
     if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-        bodyBytes, _ := io.ReadAll(resp.Body)
-        fmt.Println("Response from Twilio:", string(bodyBytes))
-        return nil
-    } else {
-        bodyBytes, _ := io.ReadAll(resp.Body)
-        return fmt.Errorf("twilio API error: %s", string(bodyBytes))
-    }
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			fmt.Printf("Sent part %d/%d: Response from Twilio: %s\n", i+1, len(messageParts), string(bodyBytes))
+		} else {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("twilio API error: %s", string(bodyBytes))
+		}
+}
+    fmt.Println("All message parts sent successfully.")
+	return nil
+}
+
+func splitMessage(msg string, maxLen int) []string {
+	var parts []string
+	for i := 0; i < len(msg); i += maxLen {
+		end := i + maxLen
+		if end > len(msg) {
+			end = len(msg)
+		}
+		parts = append(parts, msg[i:end])
+	}
+	return parts
 }
 
 func (api *ApiManager) handleTwilioWebhook(ctx *gin.Context) {

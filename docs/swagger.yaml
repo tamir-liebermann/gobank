@@ -280,9 +280,8 @@ paths:
       operationId: get-account-by-name-or-phone
       parameters:
       - description: Account Holder's Name
-        in: path
+        in: query
         name: account_holder
-        required: true
         type: string
       produces:
       - application/json

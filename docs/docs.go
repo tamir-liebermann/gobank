@@ -180,8 +180,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Account Holder's Name",
                         "name": "account_holder",
-                        "in": "path",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {

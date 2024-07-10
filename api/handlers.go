@@ -171,7 +171,7 @@ func (api *ApiManager) handleGetById(ctx *gin.Context) {
 // @Description Retrieve account details by the account holder's name
 // @ID get-account-by-name-or-phone
 // @Produce json
-// @Param account_holder path string true "Account Holder's Name"
+// @Param account_holder query string false "Account Holder's Name"
 // @Success 200 {object} BankAccRes    "Account found!"
 // @Failure 400 {object} ErrorResponse "Invalid ID format"
 // @Failure 404 {object} ErrorResponse "Account not found"
@@ -180,26 +180,24 @@ func (api *ApiManager) handleGetById(ctx *gin.Context) {
 // @Security BearerAuth
 func (api *ApiManager) handleGetByNameOrPhone(ctx *gin.Context) {
 	// Extract the account holder's name from the request parameters
-	 var req struct {
-        Query string `json:"query" binding:"required"`
-    }
+	 accountHolder := ctx.Query("account_holder")
 
-    // Parse the JSON request body
-    if err := ctx.ShouldBindJSON(&req); err != nil {
-        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid request"})
-        return
-    }
+    if accountHolder == "" {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Query parameter is required"})
+		return
+	}
 
     // Call the SearchAccountByNameOrPhone function
-    accounts, err := api.accMgr.SearchAccountByNameOrPhone(req.Query)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
-        return
-    }
+   accounts, err := api.handleSearchAccountByNameIntent(accountHolder)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error: " + err.Error()})
+		return
+	}
 
-    // Prepare and send the response
-    ctx.JSON(http.StatusOK, accounts)
+	// Prepare and send the response
+	ctx.JSON(http.StatusOK, accounts)
 }
+
 
 // @Param id path string true "Account ID"
 // @Success 200 {object} string "Success"
@@ -257,7 +255,7 @@ func (api *ApiManager) handleGetAccounts(ctx *gin.Context) {
 // @Router /account/transfer [post]
 // @Security BearerAuth
 func (api *ApiManager) handleTransfer(ctx *gin.Context) {
-    log.Println("transferHandler called")
+     log.Println("transferHandler called")
 	var req TransferRequest
 
 	// Use ShouldBindJSON to parse the request body
