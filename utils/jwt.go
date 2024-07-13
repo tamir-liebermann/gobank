@@ -22,7 +22,7 @@ func GenerateToken(username string, userId primitive.ObjectID) (string, error) {
 }
 
 func VerifyToken(token string) (string, error) {
-		spec := env.New()
+	spec := env.New()
 
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
@@ -53,6 +53,6 @@ func VerifyToken(token string) (string, error) {
 		return "", errors.New("invalid user ID in token claims")
 	}
 
-	return  userIdHex, nil
+	return userIdHex, nil
 
 }

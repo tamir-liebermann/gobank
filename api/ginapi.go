@@ -3,9 +3,6 @@ package api
 import (
 	// "log"
 
-	
-	"net/http"
-	"os"
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -13,19 +10,17 @@ import (
 	"github.com/tamir-liebermann/gobank/env"
 	"github.com/tamir-liebermann/gobank/utils"
 	"github.com/twilio/twilio-go"
+	"net/http"
+	"os"
 )
 
-
-
-
 type ApiManager struct {
-	accMgr        *db.AccManager
-	twilioClient  *twilio.RestClient
+	accMgr       *db.AccManager
+	twilioClient *twilio.RestClient
 }
 
 func NewApiManager(mgr *db.AccManager) *ApiManager {
-	 spec := env.New()
-
+	spec := env.New()
 
 	twilioClient := twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: spec.TwilioAccSid,
@@ -54,13 +49,11 @@ func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 	accounts.POST("/transfer", api.handleTransfer)
 	accounts.POST("/chatgpt", api.handleChatGPTRequest)
 	accounts.POST("/deposit", api.handleDeposit)
-	
 
 	admin := server.Group("/admin")
 	admin.GET("/accounts", api.handleGetAccounts)
 	server.POST("/webhook", api.handleTwilioWebhook)
 	server.GET("/health", api.healthCheckHandler)
-	
 
 }
 
@@ -88,12 +81,9 @@ func (api *ApiManager) Run() {
 	api.RegisterRoutes(server)
 
 	port := os.Getenv("PORT")
-    if port == "" {
-        port = "5252"
-    }
-	
+	if port == "" {
+		port = "5252"
+	}
 
-
-    server.Run(":" + port)
+	server.Run(":" + port)
 }
-

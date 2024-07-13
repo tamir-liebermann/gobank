@@ -15,26 +15,25 @@ import (
 // )
 
 type LoginResponse struct {
-	UserName string  `json:"user_name"`
-	Token  string `json:"token"`
+	UserName string `json:"user_name"`
+	Token    string `json:"token"`
 }
 
 type LoginRequest struct {
 	Password string `json:"password"`
-	UserName string  `json:"user_name"`
+	UserName string `json:"user_name"`
 }
 
-type IdRequest struct  {
-	Id 	primitive.ObjectID      `json:"_id"`
-	
+type IdRequest struct {
+	Id primitive.ObjectID `json:"_id"`
 }
 
 type IdResponse = LoginResponse
 
-type CreateAccountResponse struct { 
-	Message  string 		    `json:"message"`
-	Id       string				`json:"_id"`
-	Token  	 string 			`json:"token"`
+type CreateAccountResponse struct {
+	Message string `json:"message"`
+	Id      string `json:"_id"`
+	Token   string `json:"token"`
 }
 
 type CreateAccountRequest struct {
@@ -50,22 +49,19 @@ type TransferRequest struct {
 	Amount float64 `json:"amount"`
 }
 
-
 type AccNameReq struct {
 	AccountHolder string `json:"account_holder"`
 }
 
 type TransactionsReq struct {
-	    AccountID string `json:"_id"`
-
+	AccountID string `json:"_id"`
 }
 type AllTransactionsRes struct {
-    Transactions []db.Transaction `json:"transactions"`
-    
+	Transactions []db.Transaction `json:"transactions"`
 }
 type ErrorResponse struct {
-    Message string `json:"message"`
-    // Add other fields as needed
+	Message string `json:"message"`
+	// Add other fields as needed
 }
 
 type BankAccRes struct {
@@ -77,29 +73,27 @@ type BankAccsRes struct {
 }
 
 type BalanceRequest struct {
-    AccountID string `json:"_id" binding:"required"`
+	AccountID   string `json:"_id" binding:"required"`
 	AccountName string `json:"account_holder"`
 }
 
 type BalanceResponse struct {
-    Balance float64 `json:"balance"`
+	Balance      float64           `json:"balance"`
 	Transactions []TransactionInfo `json:"transactions"`
 }
 type TransactionInfo struct {
-    FromAccount string  `json:"from_account"`
-    Amount      float64 `json:"amount"`
+	FromAccount string  `json:"from_account"`
+	Amount      float64 `json:"amount"`
 }
 
-
-
 type DepositRequest struct {
-	AccountID string `json:"_id"`
-	Amount 	  float64 `json:"amount"`
+	AccountID string  `json:"_id"`
+	Amount    float64 `json:"amount"`
 }
 
 type DepositResponse struct {
-	Message 	string `json:"message"`
-	Amount 		float64 `json:"amount"`
+	Message string  `json:"message"`
+	Amount  float64 `json:"amount"`
 }
 
 type GPTRequest struct {
@@ -116,9 +110,8 @@ type GPTResponse struct {
 
 type ChatReq struct {
 	UserText string `json:"user_text"`
-
 }
 
 type HealthResponse struct {
-    Status string `json:"status"`
+	Status string `json:"status"`
 }

@@ -7,31 +7,27 @@ import (
 	"github.com/joho/godotenv"
 )
 
-
 var spec Specification
 
 type Specification struct {
-    TwilioAuth         string
-	TwilioAccSid       string
-	OpenaiApiKey       string
-	JwtSecret          string
-	TwilioPhoneNum	   string
-	MongoSecret 	   string
-	
-	
+	TwilioAuth     string
+	TwilioAccSid   string
+	OpenaiApiKey   string
+	JwtSecret      string
+	TwilioPhoneNum string
+	MongoSecret    string
 }
 
 func New() *Specification {
 	godotenv.Load()
 
 	spec = Specification{
-        TwilioAuth:         getEnvVar("TWILIO_AUTH"),
-		TwilioAccSid:       getEnvVar("TWILIO_ACC_SID"),
-		OpenaiApiKey:       getEnvVar("OPENAI_API_KEY"),
-		JwtSecret:          getEnvVar("JWT_SECRET"),
-		TwilioPhoneNum:     getEnvVar("TWILIO_PHONE_NUM"),
-		MongoSecret:        getEnvVar("MONGODB_URI"),	
-
+		TwilioAuth:     getEnvVar("TWILIO_AUTH"),
+		TwilioAccSid:   getEnvVar("TWILIO_ACC_SID"),
+		OpenaiApiKey:   getEnvVar("OPENAI_API_KEY"),
+		JwtSecret:      getEnvVar("JWT_SECRET"),
+		TwilioPhoneNum: getEnvVar("TWILIO_PHONE_NUM"),
+		MongoSecret:    getEnvVar("MONGODB_URI"),
 	}
 	return &spec
 }
@@ -44,4 +40,3 @@ func getEnvVar(varName string) string {
 
 	return envVar
 }
-

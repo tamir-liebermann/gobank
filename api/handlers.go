@@ -30,35 +30,29 @@ import (
 func (api *ApiManager) handleCreateAccount(ctx *gin.Context) {
 	var req CreateAccountRequest
 	err := ctx.ShouldBindJSON(&req)
-	if err !=nil{
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Bad request"})
-		
-	}
-	
-	 accountID,err := api.accMgr.CreateAccount(req.UserName,req.Password, req.Balance, req.PhoneNumber) 
 	if err != nil {
-		
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Bad request"})
+
+	}
+
+	account, err := api.accMgr.CreateAccount(req.UserName, req.Password, req.Balance, req.PhoneNumber)
+	if err != nil {
+
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Could not create account, try again later"})
 		return
-	}	
-
-	objectID, err := primitive.ObjectIDFromHex(accountID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error generating account id "})
-		return
 	}
-	token, err := utils.GenerateToken(req.UserName, objectID)
+
+	token, err := utils.GenerateToken(req.UserName, account.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error generating token "})
 		return
 	}
-	response := CreateAccountResponse{ 
-			Message: "Account created!",
-			Id:      accountID,
-			Token:   token,
+	response := CreateAccountResponse{
+		Message: "Account created!",
+		Id:      account.ID.Hex(),
+		Token:   token,
 	}
 
-	
 	ctx.JSON(http.StatusCreated, response)
 }
 
@@ -74,65 +68,64 @@ func (api *ApiManager) handleCreateAccount(ctx *gin.Context) {
 // @Failure 500 {object} ErrorResponse "Internal server error"
 // @Router /login [post]
 func (api *ApiManager) handleLogin(ctx *gin.Context) {
-    var req LoginRequest
+	var req LoginRequest
 
-    // Parse the JSON request body
-    err := ctx.ShouldBindJSON(&req)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Bad request"})
-        return
-    }
+	// Parse the JSON request body
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Bad request"})
+		return
+	}
 
-    // Validate required fields
-    if req.UserName == "" || req.Password == "" {
-        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Username and password are required"})
-        return
-    }
+	// Validate required fields
+	if req.UserName == "" || req.Password == "" {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Username and password are required"})
+		return
+	}
 
-    // Search for the account by user name (returns a slice of accounts)
-    accounts, err := api.accMgr.SearchAccountByNameOrPhone(req.UserName)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
-        return
-    }
+	// Search for the account by user name (returns a slice of accounts)
+	accounts, err := api.accMgr.SearchAccountByNameOrPhone(req.UserName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error"})
+		return
+	}
 
-    // Check if no accounts were found
-    if len(accounts) == 0 {
-        ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid credentials"})
-        return
-    }
+	// Check if no accounts were found
+	if len(accounts) == 0 {
+		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid credentials"})
+		return
+	}
 
-    // Iterate over the returned accounts to find a match with the password
-    var account *db.BankAccount
-    for _, acc := range accounts {
-        if utils.CheckPasswordHash(req.Password, acc.Password) {
-            account = acc
-            break
-        }
-    }
+	// Iterate over the returned accounts to find a match with the password
+	var account *db.BankAccount
+	for _, acc := range accounts {
+		if utils.CheckPasswordHash(req.Password, acc.Password) {
+			account = acc
+			break
+		}
+	}
 
-    // If no account matches the provided password
-    if account == nil {
-        ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid credentials"})
-        return
-    }
+	// If no account matches the provided password
+	if account == nil {
+		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid credentials"})
+		return
+	}
 
-    // Generate a token for the authenticated user
-    token, err := utils.GenerateToken(account.AccountHolder, account.ID)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error generating token"})
-        return
-    }
+	// Generate a token for the authenticated user
+	token, err := utils.GenerateToken(account.AccountHolder, account.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error generating token"})
+		return
+	}
 
-    // Prepare and send the response
-    response := LoginResponse{
-        UserName: req.UserName,
-        Token:    token,
-    }
+	// Prepare and send the response
+	response := LoginResponse{
+		UserName: req.UserName,
+		Token:    token,
+	}
 
-    ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, response)
 }
-
 
 // @Summary Get account by ID
 // @Description Get account details by its ID
@@ -180,15 +173,15 @@ func (api *ApiManager) handleGetById(ctx *gin.Context) {
 // @Security BearerAuth
 func (api *ApiManager) handleGetByNameOrPhone(ctx *gin.Context) {
 	// Extract the account holder's name from the request parameters
-	 accountHolder := ctx.Query("account_holder")
+	accountHolder := ctx.Query("account_holder")
 
-    if accountHolder == "" {
+	if accountHolder == "" {
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Query parameter is required"})
 		return
 	}
 
-    // Call the SearchAccountByNameOrPhone function
-   accounts, err := api.handleSearchAccountByNameIntent(accountHolder)
+	// Call the SearchAccountByNameOrPhone function
+	accounts, err := api.handleSearchAccountByNameIntent(accountHolder)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Internal server error: " + err.Error()})
 		return
@@ -197,7 +190,6 @@ func (api *ApiManager) handleGetByNameOrPhone(ctx *gin.Context) {
 	// Prepare and send the response
 	ctx.JSON(http.StatusOK, accounts)
 }
-
 
 // @Param id path string true "Account ID"
 // @Success 200 {object} string "Success"
@@ -255,7 +247,7 @@ func (api *ApiManager) handleGetAccounts(ctx *gin.Context) {
 // @Router /account/transfer [post]
 // @Security BearerAuth
 func (api *ApiManager) handleTransfer(ctx *gin.Context) {
-     log.Println("transferHandler called")
+	log.Println("transferHandler called")
 	var req TransferRequest
 
 	// Use ShouldBindJSON to parse the request body
@@ -264,8 +256,7 @@ func (api *ApiManager) handleTransfer(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		return
 	}
-    	log.Printf("Received transfer request: From=%s To=%s Amount=%f", req.From, req.To, req.Amount)
-
+	log.Printf("Received transfer request: From=%s To=%s Amount=%f", req.From, req.To, req.Amount)
 
 	fromAccountID, err := primitive.ObjectIDFromHex(req.From)
 	if err != nil {
@@ -299,28 +290,27 @@ func (api *ApiManager) handleTransfer(ctx *gin.Context) {
 // @Router /account/transactions/{id} [get]
 // @Security BearerAuth
 func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
-    idParam := ctx.Param("id")
-    id, err := primitive.ObjectIDFromHex(idParam)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
-        return
-    }
+	idParam := ctx.Param("id")
+	id, err := primitive.ObjectIDFromHex(idParam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		return
+	}
 
-    transactions, err := api.accMgr.GetTransactionsHistory(id)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error fetching transactions: %v", err)})
-        return
-    }
+	transactions, err := api.accMgr.GetTransactionsHistory(id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error fetching transactions: %v", err)})
+		return
+	}
 
-    table, err := utils.FormatTransactionsTable(transactions)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+	table, err := utils.FormatTransactionsTable(transactions)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-    ctx.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(table))
+	ctx.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(table))
 }
-
 
 // handleDeposit handles deposit requests
 // @Summary Deposit to an account
@@ -334,40 +324,40 @@ func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
 // @Failure 500 {object} ErrorResponse "Error depositing to account"
 // @Router /account/deposit [post]
 func (api *ApiManager) handleDeposit(ctx *gin.Context) {
-    var req DepositRequest
+	var req DepositRequest
 
-    // Parse the JSON request body
-    if err := ctx.ShouldBindJSON(&req); err != nil {
-        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid request"})
-        return
-    }
+	// Parse the JSON request body
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid request"})
+		return
+	}
 
-    // Validate that the amount is positive
-    if req.Amount <= 0 {
-        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Amount must be greater than zero"})
-        return
-    }
+	// Validate that the amount is positive
+	if req.Amount <= 0 {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Amount must be greater than zero"})
+		return
+	}
 
-    // Convert the account ID from string to ObjectID
-    accountID, err := primitive.ObjectIDFromHex(req.AccountID)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid account ID format"})
-        return
-    }
+	// Convert the account ID from string to ObjectID
+	accountID, err := primitive.ObjectIDFromHex(req.AccountID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Invalid account ID format"})
+		return
+	}
 
-    // Perform the deposit operation
-    err = api.accMgr.DepositToAccount(req.Amount, accountID)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error depositing to account"})
-        return
-    }
+	// Perform the deposit operation
+	err = api.accMgr.DepositToAccount(req.Amount, accountID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Error depositing to account"})
+		return
+	}
 
-    // Prepare and send the response
-    response := DepositResponse{
-        Message: "Deposit successful",
-        Amount:  req.Amount,
-    }
-    ctx.JSON(http.StatusOK, response)
+	// Prepare and send the response
+	response := DepositResponse{
+		Message: "Deposit successful",
+		Amount:  req.Amount,
+	}
+	ctx.JSON(http.StatusOK, response)
 }
 
 // handleCheckBalance checks the balance of an account
@@ -383,42 +373,41 @@ func (api *ApiManager) handleDeposit(ctx *gin.Context) {
 // @Failure 500 {object} ErrorResponse "Internal server error"
 // @Router /account/balance [get]
 func (api *ApiManager) handleCheckBalance(ctx *gin.Context) {
-     accountID := ctx.Query("accountId")
-    accountName := ctx.Query("accountName")
+	accountID := ctx.Query("accountId")
+	accountName := ctx.Query("accountName")
 
-    if accountID == "" && accountName == "" {
-        ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Account ID or name must be provided"})
-        return
-    }
+	if accountID == "" && accountName == "" {
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: "Account ID or name must be provided"})
+		return
+	}
 
-    // Call handleCheckBalanceIntent
-    balance, transactions, err := api.handleCheckBalanceIntent(accountID, accountName)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: err.Error()})
-        return
-    }
+	// Call handleCheckBalanceIntent
+	balance, transactions, err := api.handleCheckBalanceIntent(accountID, accountName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: err.Error()})
+		return
+	}
 
-    // Prepare the transaction info
-    transactionInfos := []TransactionInfo{}
-    for _, transaction := range transactions {
-        if transaction.ToAccount.Hex() == accountID {
-            transactionInfos = append(transactionInfos, TransactionInfo{
-                FromAccount: transaction.FromAccount.Hex(),
-                Amount:      transaction.Amount,
-            })
-        }
-    }
+	// Prepare the transaction info
+	transactionInfos := []TransactionInfo{}
+	for _, transaction := range transactions {
+		if transaction.ToAccount.Hex() == accountID {
+			transactionInfos = append(transactionInfos, TransactionInfo{
+				FromAccount: transaction.FromAccount.Hex(),
+				Amount:      transaction.Amount,
+			})
+		}
+	}
 
-    // Prepare and send the response
-    response := BalanceResponse{
-        Balance:      balance,
-        Transactions: transactionInfos,
-    }
-    ctx.JSON(http.StatusOK, response)
+	// Prepare and send the response
+	response := BalanceResponse{
+		Balance:      balance,
+		Transactions: transactionInfos,
+	}
+	ctx.JSON(http.StatusOK, response)
 }
 
-
 func (api *ApiManager) healthCheckHandler(c *gin.Context) {
-    response := HealthResponse{Status: "OK"}
-    c.JSON(http.StatusOK, response)
+	response := HealthResponse{Status: "OK"}
+	c.JSON(http.StatusOK, response)
 }
