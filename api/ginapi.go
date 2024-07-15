@@ -52,12 +52,40 @@ func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 
 	admin := server.Group("/admin")
 	admin.GET("/accounts", api.handleGetAccounts)
-	server.POST("/webhook", api.handleTwilioWebhook)
+	server.POST("/webhook",  api.twilioAuthenticate, api.handleTwilioWebhook)
 	server.GET("/health", api.healthCheckHandler)
 
 }
 
+
+func (api *ApiManager) twilioAuthenticate(ctx *gin.Context) {
+    var twilioReq TwilioReq
+	spec := env.New()
+	twilioReq.Secret = spec.TwilioSecret
+    if err := ctx.ShouldBind(&twilioReq); err == nil && twilioReq.Secret != "" {
+        // Handle Twilio request authentication
+         if twilioReq.Secret != spec.TwilioSecret {
+            ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid Twilio secret"})
+            return
+        }
+		account, err := api.getAccountFromTwilioReq(ctx, twilioReq)
+        if err != nil {
+            ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+            return
+        }
+        ctx.Set("userId", account.ID.Hex())
+	    ctx.Set("twilioSecret", twilioReq.Secret)
+
+        ctx.Next()
+        return
+    }
+   
+}
+
 func authenticate(context *gin.Context) {
+// first, if this is twilio req implement getAccountFromTwilioReq here...
+	
+	
 	token := context.Request.Header.Get("Authorization")
 
 	if token == "" {

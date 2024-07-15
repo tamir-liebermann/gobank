@@ -24,8 +24,13 @@ func (api *ApiManager) sendWhatsAppMessage(to, message string) error {
 	accountSid := spec.TwilioAccSid
 	authToken := spec.TwilioAuth
 	from := spec.TwilioPhoneNum
+	secret := spec.TwilioSecret
+    
 
 	urlStr := fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", accountSid)
+    if secret == "" {
+		return fmt.Errorf("TwilioSecret is empty")
+	}
 
 	maxCharsPerMessage := 1600
 	messageParts := splitMessage(message, maxCharsPerMessage)
@@ -37,6 +42,7 @@ func (api *ApiManager) sendWhatsAppMessage(to, message string) error {
 		data.Set("To", to)
 		data.Set("From", from)
 		data.Set("Body", part)
+        data.Set("Secret",secret)
 
 		req, err := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode()))
 		if err != nil {
@@ -79,12 +85,14 @@ func splitMessage(msg string, maxLen int) []string {
 type TwilioReq struct {
 	From string `form:"From"`
 	Body string `form:"Body"`
+    Secret string `form:"Secret" json:"Secret"`
 }
 
 var PhoneNumberRegexp = regexp.MustCompile(`^\+\d{1,3}[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$`)
 
 func (api *ApiManager) getAccountFromTwilioReq( ctx *gin.Context, req TwilioReq) (*db.BankAccount, error) {
-	phone := strings.TrimPrefix(req.From, "whatsapp:")
+	
+    phone := strings.TrimPrefix(req.From, "whatsapp:")
 	ok := PhoneNumberRegexp.Match([]byte(phone))
 	if !ok {
 		return nil, errors.New("this is not twilio number")
@@ -109,7 +117,8 @@ func (api *ApiManager) getAccountFromTwilioReq( ctx *gin.Context, req TwilioReq)
 }
 
 func (api *ApiManager) handleTwilioWebhook(ctx *gin.Context) {
-	var twilioReq TwilioReq
+	var twilioReq TwilioReq // find out if twillio also sends some token to ensure this in auth, and not impersonator
+   
 
 	if err := ctx.ShouldBind(&twilioReq); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -117,10 +126,12 @@ func (api *ApiManager) handleTwilioWebhook(ctx *gin.Context) {
 	}
 
 	_, err := api.getAccountFromTwilioReq(ctx,twilioReq)
+
     if err != nil {
         	ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
     }
+
 
 	userInput := strings.ToLower(strings.TrimSpace(twilioReq.Body))
 
@@ -151,7 +162,7 @@ func (api *ApiManager) handleTwilioWebhook(ctx *gin.Context) {
 	}
 
 	// Prepare and send the HTTP POST request to Twilio API
-	err = api.sendWhatsAppMessage(twilioReq.From, responseStr)
+	err = api.sendWhatsAppMessage( twilioReq.From, responseStr)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

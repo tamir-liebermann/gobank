@@ -16,6 +16,7 @@ type Specification struct {
 	JwtSecret      string
 	TwilioPhoneNum string
 	MongoSecret    string
+	TwilioSecret   string
 }
 
 func New() *Specification {
@@ -28,6 +29,7 @@ func New() *Specification {
 		JwtSecret:      getEnvVar("JWT_SECRET"),
 		TwilioPhoneNum: getEnvVar("TWILIO_PHONE_NUM"),
 		MongoSecret:    getEnvVar("MONGODB_URI"),
+		TwilioSecret:   getEnvVar("TWILIO_SECRET"),
 	}
 	return &spec
 }
