@@ -118,13 +118,19 @@ func (api *ApiManager) getAccountFromTwilioReq( ctx *gin.Context, req TwilioReq)
 
 func (api *ApiManager) handleTwilioWebhook(ctx *gin.Context) {
 	var twilioReq TwilioReq // find out if twillio also sends some token to ensure this in auth, and not impersonator
-   
+    
+
 
 	if err := ctx.ShouldBind(&twilioReq); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+
+   
+
+    // Fetch or create the Twilio secret
+   
 	_, err := api.getAccountFromTwilioReq(ctx,twilioReq)
 
     if err != nil {
@@ -170,3 +176,67 @@ func (api *ApiManager) handleTwilioWebhook(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Request processed and response sent via WhatsApp"})
 }
+
+
+func (api *ApiManager) createTwilioSecret(key, value string) (string ,error) {
+    spec := env.New()
+    accountSid := spec.TwilioAccSid
+    authToken := spec.TwilioAuth
+    
+    client := &http.Client{}
+
+    // Construct the request URL
+    urlStr := fmt.Sprintf("https://api.twilio.com/2010-04-01/Accounts/%s/Secrets", accountSid)
+
+    // Prepare the request payload
+    data := url.Values{}
+    data.Set("Key", key)
+    data.Set("Value", value)
+
+    // Create a POST request
+    req, err := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode()))
+    if err != nil {
+        return "", err
+    }
+
+    // Set HTTP Basic Auth credentials
+    req.SetBasicAuth(accountSid, authToken)
+    req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+    // Execute the request
+    resp, err := client.Do(req)
+    if err != nil {
+        return "" , err
+    }
+    defer resp.Body.Close()
+
+    // Check the response status code
+    if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+        bodyBytes, _ := io.ReadAll(resp.Body)
+        fmt.Printf("Secret created successfully: %s\n", string(bodyBytes))
+        return value ,nil
+    } else {
+        bodyBytes, _ := io.ReadAll(resp.Body)
+        return "", fmt.Errorf("twilio API error: %s", string(bodyBytes))
+    }
+}
+
+func (api *ApiManager) InitializeTwilioSecret() (string, error) {
+    spec := env.New()
+    
+    // Replace with your actual secret key and value
+    secretKey := "Secret"
+    secretValue := spec.TwilioSecret
+
+    // Call createTwilioSecret function to create the secret
+    secret ,err := api.createTwilioSecret(secretKey, secretValue)
+    if err != nil {
+        return "",fmt.Errorf("failed to create Twilio secret: %v", err)
+    }
+
+    // Optionally, update the environment spec with the new secret value
+     
+
+    return secret , nil
+}
+

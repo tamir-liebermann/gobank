@@ -29,7 +29,7 @@ func main() {
 	apiMgr := api.NewApiManager(accMgr)
 	router := gin.Default()
 	apiMgr.RegisterRoutes(router)
-
+  
 	// Start the server
 	apiMgr.Run()
 }
