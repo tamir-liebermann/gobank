@@ -10,13 +10,15 @@ import (
 var spec Specification
 
 type Specification struct {
-	TwilioAuth     string
-	TwilioAccSid   string
-	OpenaiApiKey   string
-	JwtSecret      string
-	TwilioPhoneNum string
-	MongoSecret    string
-	TwilioSecret   string
+	TwilioAuth      string
+	TwilioAccSid    string
+	OpenaiApiKey    string
+	JwtSecret       string
+	TwilioPhoneNum  string
+	MongoSecret     string
+	TwilioSecret    string
+	TwilioApiKey    string	
+	TwilioApiSecret string
 }
 
 func New() *Specification {
@@ -30,6 +32,9 @@ func New() *Specification {
 		TwilioPhoneNum: getEnvVar("TWILIO_PHONE_NUM"),
 		MongoSecret:    getEnvVar("MONGODB_URI"),
 		TwilioSecret:   getEnvVar("TWILIO_SECRET"),
+		TwilioApiKey:   getEnvVar("TWILIO_API_KEY"),
+		TwilioApiSecret: getEnvVar("TWILIO_API_SECRET"),
+
 	}
 	return &spec
 }

@@ -53,7 +53,7 @@ func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 
 	admin := server.Group("/admin")
 	admin.GET("/accounts", api.handleGetAccounts)
-	server.POST("/webhook", api.twilioAuthenticate, api.handleTwilioWebhook)
+	server.POST("/webhook", api.twilioAuthenticate, api.handleTwilioWebhook, )
 	server.GET("/health", api.healthCheckHandler)
 
 }
@@ -61,24 +61,31 @@ func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 
 func (api *ApiManager) twilioAuthenticate(ctx *gin.Context) {
     var twilioReq TwilioReq
-    spec := env.New() // Load environment variables
+	spec := env.New()
+	if err := ctx.ShouldBind(&twilioReq); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
+		return
+	}
 
+	bodyWithoutSecret, secret := extractSecretFromBody(twilioReq.Body)
+	if secret == "" {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Missing Twilio secret"})
+		return
+	}
+	twilioReq.Body = bodyWithoutSecret
+
+	// Handle Twilio request authentication
+	if secret != spec.TwilioSecret {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid Twilio secret"})
+		return
+	}
+	
     // Bind the request body to the TwilioReq struct
-    if err := ctx.ShouldBind(&twilioReq); err != nil {
-        ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
-        return
-    }
 
-    // Extract the Twilio secret from the request body
-    if twilioReq.Secret == "" {
-        twilioReq.Secret = spec.TwilioSecret // Set the secret if not provided
-    }
+ // Load environment variables or configuration
 
-    // Validate the Twilio secret
-    if twilioReq.Secret != spec.TwilioSecret {
-        ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid Twilio secret"})
-        return
-    }
+    // Validate the secret
+    
     // Handle Twilio request authentication
     account, err := api.getAccountFromTwilioReq(ctx, twilioReq)
     if err != nil {

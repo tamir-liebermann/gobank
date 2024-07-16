@@ -55,6 +55,8 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		return
 	}
 	userInput := strings.ToLower(strings.TrimSpace(chatReq.UserText))
+
+	userInput = omitSecretField(userInput)
 	// TODO must handle this . accountId MUST NOT BE EMPTY!!!
 	accountId, ok := ctx.Get("userId") //todo get from jwt
 
@@ -62,29 +64,30 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "accountId is required"})
 		return
 	}
-	//var acc db.BankAccount
-	// twilioAcc, ok := ctx.Get(TwilioUser)
-	// if ok {
-	// 	b, err := json.Marshal(twilioAcc)
-	// 	if err != nil {
-	// 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-	// 		return
-	// 	}
+	var acc db.BankAccount
+	twilioAcc, ok := ctx.Get(TwilioUser)
+	if ok {
+		b, err := json.Marshal(twilioAcc)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			return
+		}
 
-	// 	json.Unmarshal(b, &acc)
-	// 	if err != nil {
-	// 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
-	// 		return
-	// 	}
+		json.Unmarshal(b, &acc)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			return
+		}
 
-	// 	accountId = acc.ID.Hex()
-	// }
+		accountId = acc.ID.Hex()
+	}
 
 	client := openai.NewClient(spec.OpenaiApiKey)
+	
 
 	rules := `
 		You are a bank API, you reply in json objects only, if unsure ask for clarification.
-
+		Note: Ignore any occurrences of "Secret: {secret}" in the message body.
 		If the user wants to transfer to an account id, give them:
 		{
 			"intent": "transfer", // must be this keyword
@@ -489,4 +492,14 @@ func (api *ApiManager) handleGetAccountsIntent() ([]db.BankAccount, error) {
 		return nil, fmt.Errorf("could not retrieve accounts: %v", err)
 	}
 	return accounts, nil
+}
+func omitSecretField(userInput string) string {
+	lines := strings.Split(userInput, "\n")
+	filteredLines := []string{}
+	for _, line := range lines {
+		if !strings.Contains(line, "Secret:") {
+			filteredLines = append(filteredLines, line)
+		}
+	}
+	return strings.Join(filteredLines, "\n")
 }
