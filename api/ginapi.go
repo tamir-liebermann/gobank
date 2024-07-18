@@ -5,8 +5,10 @@ import (
 
 	"net/http"
 	"os"
+      
 
 	"github.com/gin-gonic/gin"
+	
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/tamir-liebermann/gobank/db"
@@ -34,13 +36,14 @@ func NewApiManager(mgr *db.AccManager) *ApiManager {
 	}
 }
 
+
 func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	server.POST("/create", api.handleCreateAccount)
 	server.POST("/login", api.handleLogin)
 
 	accounts := server.Group("/account")
-	accounts.Use(authenticate)
+	accounts.Use(api.authWithTwilioOrJwt)
 
 	accounts.GET("/transactions/:id", api.handleGetTransactionsHistory)
 	accounts.GET("/:id", api.handleGetById)
@@ -53,38 +56,29 @@ func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 
 	admin := server.Group("/admin")
 	admin.GET("/accounts", api.handleGetAccounts)
-	server.POST("/webhook", api.twilioAuthenticate, api.handleTwilioWebhook, )
+	server.POST("/webhook",  api.handleTwilioWebhook, api.authWithTwilioOrJwt)
 	server.GET("/health", api.healthCheckHandler)
 
 }
 
 
+
+
+
+
 func (api *ApiManager) twilioAuthenticate(ctx *gin.Context) {
     var twilioReq TwilioReq
-	spec := env.New()
+	
 	if err := ctx.ShouldBind(&twilioReq); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 
-	bodyWithoutSecret, secret := extractSecretFromBody(twilioReq.Body)
-	if secret == "" {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Missing Twilio secret"})
-		return
-	}
-	twilioReq.Body = bodyWithoutSecret
-
-	// Handle Twilio request authentication
-	if secret != spec.TwilioSecret {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Invalid Twilio secret"})
+	if !validateTwilioRequest(ctx) {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"message": "Invalid request"})
 		return
 	}
 	
-    // Bind the request body to the TwilioReq struct
-
- // Load environment variables or configuration
-
-    // Validate the secret
     
     // Handle Twilio request authentication
     account, err := api.getAccountFromTwilioReq(ctx, twilioReq)
@@ -94,7 +88,6 @@ func (api *ApiManager) twilioAuthenticate(ctx *gin.Context) {
     }
 
     ctx.Set("userId", account.ID.Hex())
-    ctx.Set("twilioSecret", twilioReq.Secret)
 
     ctx.Next()
 }
@@ -103,7 +96,7 @@ func (api *ApiManager) twilioAuthenticate(ctx *gin.Context) {
 
 
 
-func authenticate(context *gin.Context) {
+func  (api *ApiManager) jwtAuthenticate(context *gin.Context) {
 // first, if this is twilio req implement getAccountFromTwilioReq here...
 	
 	
@@ -125,6 +118,15 @@ func authenticate(context *gin.Context) {
 	context.Next()
 }
 
+
+func (api *ApiManager)authWithTwilioOrJwt (c *gin.Context) {
+	if validateTwilioRequest(c) {
+		api.twilioAuthenticate(c)
+	} 
+	api.jwtAuthenticate(c)
+	
+}
+
 func (api *ApiManager) Run() {
 	server := gin.Default()
 	api.RegisterRoutes(server)
@@ -136,3 +138,7 @@ func (api *ApiManager) Run() {
 
 	server.Run(":" + port)
 }
+
+
+
+

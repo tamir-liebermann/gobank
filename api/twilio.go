@@ -15,6 +15,8 @@ import (
 	"github.com/tamir-liebermann/gobank/db"
 	"github.com/tamir-liebermann/gobank/env"
 	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/twilio/twilio-go/client"
+
 )
 
 const TwilioUser = "twilio_user"
@@ -82,7 +84,7 @@ func splitMessage(msg string, maxLen int) []string {
 type TwilioReq struct {
 	From string `form:"From" json:"From"`
 	Body string `form:"Body" json:"Body"`
-    Secret string `form:"Secret" json:"Secret"`
+   
 }
 
 var PhoneNumberRegexp = regexp.MustCompile(`^\+\d{1,3}[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$`)
@@ -174,11 +176,30 @@ func (api *ApiManager) handleTwilioWebhook(ctx *gin.Context) {
 }
 
 
-func extractSecretFromBody(body string) (string, string) {
-	// Example: "Hello, this is a test message. Secret: exampleSecret"
-	parts := strings.Split(body, " Secret: ")
-	if len(parts) == 2 {
-		return parts[0], parts[1]
+
+
+
+func validateTwilioRequest(ctx *gin.Context) bool {
+	spec := env.New()
+	authToken := spec.TwilioAuth
+	requestValidator := client.NewRequestValidator(authToken)
+	url := spec.AppWebhookUrl // Replace with your actual webhook URL
+
+	// Extract the Twilio signature from the header
+	signature := ctx.GetHeader("X-Twilio-Signature")
+	if signature == "" {
+		return false
 	}
-	return body, ""
+
+	// Extract the parameters from the request
+	params := make(map[string]string)
+	for key, values := range ctx.Request.PostForm {
+		if len(values) > 0 {
+			params[key] = values[0]
+		}
+	}
+
+	// Validate the request
+	return requestValidator.Validate(url, params, signature)
 }
+

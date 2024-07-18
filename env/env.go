@@ -19,6 +19,7 @@ type Specification struct {
 	TwilioSecret    string
 	TwilioApiKey    string	
 	TwilioApiSecret string
+	AppWebhookUrl   string
 }
 
 func New() *Specification {
@@ -34,7 +35,7 @@ func New() *Specification {
 		TwilioSecret:   getEnvVar("TWILIO_SECRET"),
 		TwilioApiKey:   getEnvVar("TWILIO_API_KEY"),
 		TwilioApiSecret: getEnvVar("TWILIO_API_SECRET"),
-
+		AppWebhookUrl:  getEnvVar("APP_WEBHOOK_URL"),
 	}
 	return &spec
 }

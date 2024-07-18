@@ -379,3 +379,24 @@ func (m *AccManager) GetAccountBalance(accountId primitive.ObjectID) (float64, e
 
 	return account.Balance, nil
 }
+func (m *AccManager) GetMostRecentTransaction(accountID primitive.ObjectID) (*Transaction, error) {
+    // Define the filter to get transactions for the specified account, sorted by timestamp in descending order
+    filter := bson.M{
+        "$or": []bson.M{
+            {"from_account": accountID},
+            {"to_account": accountID},
+        },
+    }
+
+    // Sort by timestamp (or ID if you're using it for recency) in descending order to get the most recent transaction
+    sort := bson.D{{Key:"Timestamp", Value: -1}} // Adjust "timestamp" to your actual timestamp field in the database
+
+    // Execute the query to find the most recent transaction
+    var transaction Transaction
+    err := m.transactions.FindOne(context.TODO(), filter, options.FindOne().SetSort(sort)).Decode(&transaction)
+    if err != nil {
+        return nil, err
+    }
+
+    return &transaction, nil
+}

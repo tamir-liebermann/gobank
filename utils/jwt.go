@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -55,4 +56,18 @@ func VerifyToken(token string) (string, error) {
 
 	return userIdHex, nil
 
+}
+
+func ExtractStringTokenFromHeader(header string) (string, error) {
+    if header == "" {
+        return "", errors.New("authorization header is empty")
+    }
+
+    // If there is a Bearer prefix, strip it
+    if strings.HasPrefix(header, "Bearer ") {
+        return strings.TrimPrefix(header, "Bearer "), nil
+    }
+
+    // If the header doesn't have the Bearer prefix, assume it's a JWT token directly
+    return header, nil
 }
