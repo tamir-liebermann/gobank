@@ -35,7 +35,7 @@ func (api *ApiManager) handleCreateAccount(ctx *gin.Context) {
 
 	}
 
-	account, err := api.accMgr.CreateAccount(req.UserName, req.Password, req.Balance, req.PhoneNumber)
+	account, err := api.accMgr.CreateAccount(req.UserName, req.Password, req.Balance, req.PhoneNumber, req.Role)
 	if err != nil {
 
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Could not create account, try again later"})
@@ -52,7 +52,8 @@ func (api *ApiManager) handleCreateAccount(ctx *gin.Context) {
 		Id:      account.ID.Hex(),
 		Token:   token,
 	}
-
+	ctx.Set("UserRole", account.Role)
+	ctx.Next()
 	ctx.JSON(http.StatusCreated, response)
 }
 
@@ -225,6 +226,33 @@ func (api *ApiManager) handleDeleteById(ctx *gin.Context) {
 // @Router /admin/accounts [get]
 // @Security BearerAuth
 func (api *ApiManager) handleGetAccounts(ctx *gin.Context) {
+	// Assume you have set the userId in the context after authentication
+	userId, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "User ID not found"})
+		return
+	}
+
+	// Fetch the account based on userId
+	objectID, err := primitive.ObjectIDFromHex(userId.(string))
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, ErrorResponse{Message: "Invalid user ID format"})
+		return
+	}
+
+	account, err := api.accMgr.SearchAccountById(objectID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Could not find account"})
+		return
+	}
+
+	// Check the role of the account
+	if account.Role != "admin" {
+		ctx.JSON(http.StatusForbidden, ErrorResponse{Message: "You are not authorized to perform this action"})
+		return
+	}
+
+	// Fetch all accounts
 	accounts, err := api.accMgr.GetAccounts()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: "Could not find accounts"})

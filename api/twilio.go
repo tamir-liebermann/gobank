@@ -101,7 +101,7 @@ func (api *ApiManager) getAccountFromTwilioReq( ctx *gin.Context, req TwilioReq)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			//  return create account
-			account, err = api.accMgr.CreateAccount("guest", "abc", 1000, phone)
+			account, err = api.accMgr.CreateAccount("guest", "abc", 1000, phone ,"user")
 
 			if err != nil {
 				return nil, err

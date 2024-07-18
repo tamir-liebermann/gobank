@@ -27,6 +27,7 @@ type BankAccount struct {
 	UpdatedAt     time.Time          `bson:"updated_at"`
 	Password      string             `bson:"password"`
 	PhoneNumber   string             `bson:"phone_number"`
+	Role		  string			 `bson:"role"`
 }
 
 type Transaction struct {
@@ -87,7 +88,7 @@ func NewManager(uri string) (*AccManager, error) {
 	}, nil
 }
 
-func (m *AccManager) CreateAccount(name string, password string, balance float64, phoneNumber string) (*BankAccount, error) {
+func (m *AccManager) CreateAccount(name string, password string, balance float64, phoneNumber string , role string) (*BankAccount, error) {
 
 	hashedPw, err := utils.HashPassword(password)
 	if err != nil {
@@ -100,7 +101,8 @@ func (m *AccManager) CreateAccount(name string, password string, balance float64
 		Balance:       balance,
 		Password:      hashedPw,
 		PhoneNumber:   phoneNumber,
-	}
+		Role:          role,
+	}	
 
 	acc := m.client.Database("banktest").Collection("accs")
 	insertResult, err := acc.InsertOne(context.TODO(), account)
@@ -183,7 +185,7 @@ func (m *AccManager) SearchAccountByNameOrPhone(query string) ([]*BankAccount, e
 }
 
 func (m *AccManager) GetAccountByPhone(phone string) (*BankAccount, error) {
-	filter := bson.D{{"phone_number", phone}}
+	filter := bson.D{{Key:"phone_number", Value: phone}}
 	var account BankAccount
 
 	acc := m.client.Database("banktest").Collection("accs")
@@ -209,6 +211,7 @@ func (m *AccManager) SearchAccountById(id primitive.ObjectID) (*BankAccount, err
 }
 
 func (m *AccManager) GetAccounts() ([]BankAccount, error) {
+	
 	var accounts []BankAccount
 	collection := m.client.Database("banktest").Collection("accs")
 
@@ -400,3 +403,4 @@ func (m *AccManager) GetMostRecentTransaction(accountID primitive.ObjectID) (*Tr
 
     return &transaction, nil
 }
+

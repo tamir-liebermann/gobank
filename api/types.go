@@ -41,6 +41,7 @@ type CreateAccountRequest struct {
 	UserName    string  `json:"user_name"`
 	Balance     float64 `json:"balance"`
 	PhoneNumber string  `json:"phone_number"`
+	Role        string  `json:"role"`
 }
 
 type TransferRequest struct {
@@ -78,7 +79,7 @@ type BalanceRequest struct {
 }
 
 type BalanceResponse struct {
-	Balance      float64           `json:"balance"`
+	Balance      string           `json:"balance"`
 	Transactions []TransactionInfo `json:"transactions"`
 }
 type TransactionInfo struct {
@@ -114,4 +115,8 @@ type ChatReq struct {
 
 type HealthResponse struct {
 	Status string `json:"status"`
+}
+
+type PhoneRequest struct {
+	PhoneNumber string `json:"phone_number"`
 }

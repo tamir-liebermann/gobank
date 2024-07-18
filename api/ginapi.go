@@ -55,6 +55,7 @@ func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 	accounts.POST("/deposit", api.handleDeposit)
 
 	admin := server.Group("/admin")
+	admin.Use(api.authWithTwilioOrJwt)
 	admin.GET("/accounts", api.handleGetAccounts)
 	server.POST("/webhook",  api.handleTwilioWebhook, api.authWithTwilioOrJwt)
 	server.GET("/health", api.healthCheckHandler)

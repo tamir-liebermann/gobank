@@ -19,12 +19,13 @@ import (
 
 const (
 	TRANSFER_INTENT         = "transfer"
-	FIND_ACCOUNT_INTENT     = "find this account"
+	FIND_ACCOUNT_BY_PHONE_INTENT     = "find this account"
 	TRANSACTIONS_INTENT     = "transactions"
 	SEARCH_INTENT           = "search"
 	DEPOSIT_INTENT          = "deposit"
 	BALANCE_CHECK_INTENT    = "balance"
 	GET_ALL_ACCOUNTS_INTENT = "all accounts"
+	
 )
 
 // type AgentTransferRequest struct {
@@ -99,11 +100,11 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 			
 		}
 
-		If the user wants to search for another account by id, give them: 
+		If the user wants to search for another account by spesific phone number, give them: 
 		{
 			"intent": "find this account", // must be this keyword
 			"body": {
-				"_id":"string", // must be the id 
+				"phone_number":"string", // must be the phone number 
 			}
 		}
 
@@ -195,6 +196,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
 		}
 		accountId := fmt.Sprintf("%v", accountId)
+		
 		err = api.handleTransferIntent(accountId, transferReq.To, transferReq.Amount)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "servererror"})
@@ -203,25 +205,27 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		tranferAccId, _ := primitive.ObjectIDFromHex(accountId) 
 		mostRecentTransfer,_ := api.accMgr.GetMostRecentTransaction(tranferAccId)
 		response = fmt.Sprintf("Transfer request processed successfully : %v", mostRecentTransfer)
-	case FIND_ACCOUNT_INTENT:
+	case FIND_ACCOUNT_BY_PHONE_INTENT:
 		bodyBytes, err := json.Marshal(req.Body)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
-		}
+	    if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+		return
+	}
 
-		var idRequest IdRequest
-		err = json.Unmarshal(bodyBytes, &idRequest)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+	var phoneRequest PhoneRequest
+	err = json.Unmarshal(bodyBytes, &phoneRequest)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+		return
+	}
 
-		}
+	accountName, err := api.handleFindAccountByPhoneIntent(phoneRequest.PhoneNumber)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
 
-		account, err := api.handleFindAccountIntent(idRequest.Id.Hex())
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
-		response = fmt.Sprintf("Account found: %v", account)
+	response = fmt.Sprintf("Account found: %v", accountName)
 
 	case TRANSACTIONS_INTENT:
 		
@@ -278,7 +282,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
     response = fmt.Sprintf("Deposit processed successfully. New balance: %.2f", newBalance)
     
-	
+		
 
 	case BALANCE_CHECK_INTENT:
 	// Retrieve accountId from Gin context
@@ -317,7 +321,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		Transactions: transactionInfos,
 	}
 
-	response =fmt.Sprintf("balance found: %v",balResponse )
+	response =fmt.Sprintf("balance found: %v",balResponse.Balance )
 	
 	case GET_ALL_ACCOUNTS_INTENT:
 		bodyBytes, err := json.Marshal(req.Body)
@@ -332,7 +336,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
 		}
 
-		accounts, err := api.handleGetAccountsIntent()
+		accounts, err := api.handleGetAccountsIntent(ctx)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to retrieve accounts"})
 			return
@@ -378,8 +382,7 @@ func (api *ApiManager) handleTransferIntent(from, to string, amount float64) err
 		return err
 	}
 	var toAccountID primitive.ObjectID
-    // Check if 'to' is an ObjectID (account ID)
-
+    // Check if 'to' is an ObjectID (account ID))
      if toAccountID, err = primitive.ObjectIDFromHex(to); err != nil {
         // 'to' is not a valid ObjectID, assume it's a phone number
         account, err := api.accMgr.GetAccountByPhone(to)
@@ -398,7 +401,7 @@ func (api *ApiManager) handleTransferIntent(from, to string, amount float64) err
     return nil
 }
 
-func (api *ApiManager) handleSearchAccountByNameIntent(name string) ([]*db.BankAccount, error) {
+func (api *ApiManager) handleSearchAccountByNameIntent(name string) ([]string, error) {
 	// Call the updated SearchAccountByNameOrPhone function
 	accounts, err := api.accMgr.SearchAccountByNameOrPhone(name)
 	if err != nil {
@@ -410,25 +413,26 @@ func (api *ApiManager) handleSearchAccountByNameIntent(name string) ([]*db.BankA
 		return nil, fmt.Errorf("no accounts found matching the provided name or phone number")
 	}
 
-	return accounts, nil
-}
-
-func (api *ApiManager) handleFindAccountIntent(id string) (*db.BankAccount, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid account ID format: %v", err)
+	var accountNames []string
+	for _, account := range accounts {
+		accountNames = append(accountNames, account.AccountHolder)
 	}
 
-	account, err := api.accMgr.SearchAccountById(objectID)
+	return accountNames, nil
+}
+
+func (api *ApiManager) handleFindAccountByPhoneIntent(phone string) (string, error) {
+	
+	account, err := api.accMgr.GetAccountByPhone(phone)
 	if err != nil {
-		return nil, fmt.Errorf("error searching for account: %v", err)
+		return "", fmt.Errorf("error searching for account by phone: %v", err)
 	}
 
 	if account == nil {
-		return nil, fmt.Errorf("account not found")
+		return "", fmt.Errorf("account not found")
 	}
 
-	return account, nil
+	return account.AccountHolder, nil
 }
 
 func (api *ApiManager) handleDepositIntent( ctx *gin.Context,amount float64) (float64, error) {
@@ -468,52 +472,76 @@ func (api *ApiManager) handleDepositIntent( ctx *gin.Context,amount float64) (fl
 }
 
 
-func (api *ApiManager) handleCheckBalanceIntent(accountID, accountName string) (float64, []db.Transaction, error) {
+func (api *ApiManager) handleCheckBalanceIntent(accountID, accountName string) (string, []db.Transaction, error) {
 	var account *db.BankAccount
 	var err error
 
 	if accountID != "" {
 		objectID, err := primitive.ObjectIDFromHex(accountID)
 		if err != nil {
-			return 0, nil, fmt.Errorf("invalid account ID format: %v", err)
+			return "", nil, fmt.Errorf("invalid account ID format: %v", err)
 		}
 		// Get the account by ID
 		account, err = api.accMgr.SearchAccountById(objectID)
 		if err != nil {
-			return 0, nil, fmt.Errorf("error retrieving account by ID: %v", err)
+			return "", nil, fmt.Errorf("error retrieving account by ID: %v", err)
 		}
 	} else if accountName != "" {
 		// Search account by name or phone
 		accounts, err := api.accMgr.SearchAccountByNameOrPhone(accountName)
 		if err != nil {
-			return 0, nil, fmt.Errorf("error searching for account: %v", err)
+			return "", nil, fmt.Errorf("error searching for account: %v", err)
 		}
 		if len(accounts) == 0 {
-			return 0, nil, fmt.Errorf("no account found with the provided name")
+			return "", nil, fmt.Errorf("no account found with the provided name")
 		}
 		account = accounts[0] // Assuming we take the first matched account
 	} else {
-		return 0, nil, fmt.Errorf("account ID or name must be provided")
+		return "", nil, fmt.Errorf("account ID or name must be provided")
 	}
 
 	if account == nil {
-		return 0, nil, fmt.Errorf("account not found")
+		return "", nil, fmt.Errorf("account not found")
 	}
 
 	// Retrieve the transactions
 	transactions, err := api.accMgr.GetTransactionsHistory(account.ID)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error retrieving transactions: %v", err)
+		return "", nil, fmt.Errorf("error retrieving transactions: %v", err)
 	}
+	balanceStr := fmt.Sprintf("%.2f", account.Balance)
 
-	return account.Balance, transactions, nil
+	return balanceStr, transactions, nil
+	
 }
 
-func (api *ApiManager) handleGetAccountsIntent() ([]db.BankAccount, error) {
-	// Call GetAccounts method to retrieve accounts
-	accounts, err := api.accMgr.GetAccounts()
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve accounts: %v", err)
-	}
-	return accounts, nil
+func (api *ApiManager) handleGetAccountsIntent(ctx *gin.Context) ([]db.BankAccount, error) {
+    // Retrieve the user ID from the context
+    userId, exists := ctx.Get("userId")
+    if !exists {
+        return nil, fmt.Errorf("user ID not found")
+    }
+
+    // Fetch the account based on userId
+    objectID, err := primitive.ObjectIDFromHex(userId.(string))
+    if err != nil {
+        return nil, fmt.Errorf("invalid user ID format: %v", err)
+    }
+
+    account, err := api.accMgr.SearchAccountById(objectID)
+    if err != nil {
+        return nil, fmt.Errorf("could not find account: %v", err)
+    }
+
+    // Check the role of the account
+    if account.Role != "admin" {
+        return nil, fmt.Errorf("you are not authorized to perform this action")
+    }
+
+    // Call GetAccounts method to retrieve accounts
+    accounts, err := api.accMgr.GetAccounts()
+    if err != nil {
+        return nil, fmt.Errorf("could not retrieve accounts: %v", err)
+    }
+    return accounts, nil
 }
