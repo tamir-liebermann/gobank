@@ -33,7 +33,7 @@ const (
 // 	Body   TransferRequest `json:"body"`
 // }
 
-type GenericRequst struct {
+type GenericRequest struct {
 	Intent string                 `json:"intent"`
 	Body   map[string]interface{} `json:"body"`
 }
@@ -87,14 +87,19 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 	
 
 	rules := `
-		You are a bank API, you reply in json objects only, if unsure ask for clarification.
-	
-		If the user wants to transfer to an account id, give them:
+		You are a bank API, you reply in json objects only, if unsure ask for clarification ,
+		 try to guide the first time user present him the intent map in a human readable bullet pointes
+		 and not json.
+
+		If the user's intent is clear but the input does not match the spec please guide him on the correct request parameters
+	    Make it feel like a natrual conversation , you can use humor.
+
+		If the user wants to transfer to phone number, give them:
 		{
 			"intent": "transfer", // must be this keyword
 			"body":{
 				from:"string", // may leave empty string
-				to:"string", // must be the id
+				to:"string", // must be the phone number only,
 				amount:"float" // must be specified
 			}
 			
@@ -110,7 +115,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
 		If the user wants to see his transactions history , give them:
 		{
-			"intent": "transactions", // must be this keyword 
+		"intent": "transactions", // must be this keyword 
 			
 		}
 
@@ -136,20 +141,19 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		{
 			"intent": "balance", // must be this keyword
 			"body": {
-				"_id": "string, // must be the id 
+				
 				"balance": "float" // must be specified
 			}
 		}
 
 		If the user is admin and wants to see the all the existing accounts, give them: 
-		{
+		{	
 			"intent": "all accounts", // must be this keyword
 			"body" :{
-				"_id": "string" // must be the id 
+				
 			}
 		}
 	`
-
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
@@ -173,34 +177,52 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
 	textResp := resp.Choices[0].Message.Content
 
-	var req GenericRequst
+	var req GenericRequest
+	var response string
+
 	err = json.Unmarshal([]byte(textResp), &req)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": textResp})
+		response = fmt.Sprintf("%v", textResp)
+		ctx.Set("response",response)
+		return
 	}
-
+	
+	
+	errorMsgMap :=  map[string]string{
+		TRANSACTIONS_INTENT:"Transactions not found",
+		TRANSFER_INTENT:"Please provide a valid phone number and amount",
+		FIND_ACCOUNT_BY_PHONE_INTENT:"Please provide a valid phone number",
+		SEARCH_INTENT: "Please provide a valid account name or phone",
+		DEPOSIT_INTENT:"Please provide a valid amount",
+		BALANCE_CHECK_INTENT:"Check for typos",
+		GET_ALL_ACCOUNTS_INTENT:"You are not the Admin! ",
+	}
+   
 	// todo use transfer req
-	var response string
+	
 	switch req.Intent {
 	case TRANSFER_INTENT:
 		bodyBytes, err := json.Marshal(req.Body)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
-
+			return
 		}
 
 		var transferReq TransferRequest
 		err = json.Unmarshal(bodyBytes, &transferReq)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
-
+			return 
 		}
 		accountId := fmt.Sprintf("%v", accountId)
 		
 		err = api.handleTransferIntent(accountId, transferReq.To, transferReq.Amount)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "servererror"})
-
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": errorMsgMap[req.Intent]})
+			response = errorMsgMap[req.Intent]
+		    ctx.Set("response", response)
+			return
 		}
 		tranferAccId, _ := primitive.ObjectIDFromHex(accountId) 
 		mostRecentTransfer,_ := api.accMgr.GetMostRecentTransaction(tranferAccId)
@@ -221,7 +243,9 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
 	accountName, err := api.handleFindAccountByPhoneIntent(phoneRequest.PhoneNumber)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message":  errorMsgMap[req.Intent]})
+		response = errorMsgMap[req.Intent]
+		ctx.Set("response", response)
 		return
 	}
 
@@ -232,7 +256,9 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
 		historyTable, err := api.handleTransactionsIntent(ctx)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message":  errorMsgMap[req.Intent]})
+			response = errorMsgMap[req.Intent]
+		    ctx.Set("response", response)
 			return
 		}
 
@@ -242,17 +268,20 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		bodyBytes, err := json.Marshal(req.Body)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+			return
 		}
 
 		var accNameReq AccNameReq
 		err = json.Unmarshal(bodyBytes, &accNameReq)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
-
+			return
 		}
 		account, err := api.handleSearchAccountByNameIntent(accNameReq.AccountHolder)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": errorMsgMap[req.Intent]})
+			response = errorMsgMap[req.Intent]
+		    ctx.Set("response", response)
 			return
 		}
 		accountJSON, err := json.Marshal(account)
@@ -266,17 +295,21 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		bodyBytes, err := json.Marshal(req.Body)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+			return 
 		}
 
 		var depositReq DepositRequest
 		err = json.Unmarshal(bodyBytes, &depositReq)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+			return
 		}
 
 		 newBalance, err := api.handleDepositIntent(ctx, depositReq.Amount)
     if err != nil {
-        ctx.JSON(http.StatusInternalServerError, gin.H{"message": "server error"})
+        ctx.JSON(http.StatusInternalServerError, gin.H{"message": errorMsgMap[req.Intent]})
+		response = errorMsgMap[req.Intent]
+		ctx.Set("response", response)
         return
     }
 
@@ -301,7 +334,9 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 	// Call API method to get balance and transactions for the current account
 	balance, transactions, err := api.handleCheckBalanceIntent(accountId, "")
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message: err.Error()})
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{Message:  errorMsgMap[req.Intent]})
+		response = errorMsgMap[req.Intent]
+		ctx.Set("response", response)
 		return
 	}
 
@@ -321,7 +356,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		Transactions: transactionInfos,
 	}
 
-	response =fmt.Sprintf("balance found: %v",balResponse.Balance )
+	response =fmt.Sprintf("balance found: %v , ",balResponse.Balance )
 	
 	case GET_ALL_ACCOUNTS_INTENT:
 		bodyBytes, err := json.Marshal(req.Body)
@@ -334,11 +369,14 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		err = json.Unmarshal(bodyBytes, &bankAccsRes)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+			return
 		}
 
 		accounts, err := api.handleGetAccountsIntent(ctx)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "failed to retrieve accounts"})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message":  errorMsgMap[req.Intent]})
+			response = errorMsgMap[req.Intent]
+		    ctx.Set("response", response)
 			return
 		}
 
@@ -545,3 +583,4 @@ func (api *ApiManager) handleGetAccountsIntent(ctx *gin.Context) ([]db.BankAccou
     }
     return accounts, nil
 }
+
