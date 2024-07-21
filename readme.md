@@ -79,15 +79,17 @@ Type join saddle-shine to join the Twilio sandbox.
 
 2. Interact with the Chatbot
 
-If it's your first time, you can ask for instructions by sending a message like "help" or "instructions".
-The chatbot will guide you through the available actions you can perform, such as transferring money, depositing money, checking your balance, viewing transaction history, and searching for other accounts.
+- If it's your first time, you can ask for instructions by sending a message like "help" or "instructions".
+- The chatbot will guide you through the available actions you can perform, such as transferring money, depositing money, checking your balance, viewing transaction history, and searching for other accounts.
+
 Example Commands
-Transfer Money: "Transfer $100 to +1234567890"
-Deposit Money: "Deposit $50"
-Check Balance: "What is my balance?"
-Transaction History: "Show my transactions"
-Search Accounts: "Search account by phone number +1234567890"
-Deployment
+- Transfer Money: "Transfer $100 to +1234567890"
+- Deposit Money: "Deposit $50"
+- Check Balance: "What is my balance?"
+- Transaction History: "Show my transactions"
+- Search Accounts: "Search account by phone number +1234567890"
+
+**Deployment**
 You can deploy the application to Google Cloud Platform (GCP) or any other cloud provider of your choice. Follow the provider's documentation for deploying Go applications.
 
 **Contributing**
