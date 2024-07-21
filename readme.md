@@ -45,28 +45,29 @@ Before you begin, ensure you have the following installed on your system:
 
 Create a .env file in the root directory of the project and add the following environment variables:
 
-sh
+```
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_PHONE_NUMBER=your_twilio_phone_number
 MONGODB_URI=your_mongodb_uri
 OPENAI_API_KEY=your_openai_api_key
+```
 
 3. **Install Dependencies**
 
 
 Copy code
-sh
+```
 go mod tidy
-
+```
 
 4. **Run the Application**
 
 
 Copy code
-sh
+```
 go run main.go
-
+```
 5. **Usage**
 
 To interact with the GoBank application, follow these steps:
