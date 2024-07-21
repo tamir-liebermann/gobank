@@ -45,7 +45,7 @@ Before you begin, ensure you have the following installed on your system:
 
 Create a .env file in the root directory of the project and add the following environment variables:
 
-
+```sh
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_PHONE_NUMBER=your_twilio_phone_number
@@ -56,6 +56,7 @@ OPENAI_API_KEY=your_openai_api_key
 
 
 Copy code
+```sh
 go mod tidy
 
 
@@ -63,6 +64,7 @@ go mod tidy
 
 
 Copy code
+```sh
 go run main.go
 
 5. **Usage**
