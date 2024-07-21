@@ -2,25 +2,6 @@
 
 Welcome to the GoBank project! This application provides a simple banking system that allows users to perform various banking actions such as transferring money, depositing money, checking balances, viewing transaction history, and searching for other accounts. The project integrates with OpenAI CLI and Twilio to provide an intuitive chatbot interface through WhatsApp.
 
-## Technologies Used
-
-- **Go**: The core programming language used to build the application.
-- **Gin Gonic**: A web framework written in Go for building web applications and microservices.
-- **MongoDB**: A NoSQL database used to store account and transaction data.
-- **OpenAI CLI**: Used to integrate OpenAI's language model for generating responses.
-- **Twilio**: Used to provide messaging capabilities through WhatsApp.
-- **GCP (Google Cloud Platform)**: Used for deploying and managing the application infrastructure.
-
-## Features
-
-The application allows users to:
-
-1. **Transfer Money**: Transfer money between accounts.
-2. **Deposit Money**: Deposit money into your account.
-3. **Check Balance**: Check the balance of your account.
-4. **Transaction History**: View the transaction history of your account.
-5. **Search Accounts**: Search for other accounts by name or phone number.
-
 ## Getting Started
 
 ### Prerequisites
@@ -32,6 +13,8 @@ Before you begin, ensure you have the following installed on your system:
 - OpenAI CLI
 - Twilio account and API credentials
 - GCP account (optional for deployment)
+
+
 
 ### Installation
 
@@ -68,6 +51,19 @@ Copy code
 ```
 go run main.go
 ```
+
+## Features
+
+The application allows users to:
+
+1. **Transfer Money**: Transfer money between accounts.
+2. **Deposit Money**: Deposit money into your account.
+3. **Check Balance**: Check the balance of your account.
+4. **Transaction History**: View the transaction history of your account.
+5. **Search Accounts**: Search for other accounts by name or phone number.
+
+
+
 5. **Usage**
 
 To interact with the GoBank application, follow these steps:
