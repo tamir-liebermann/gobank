@@ -10,7 +10,7 @@ import (
 
 // getHeaders dynamically gets the headers from the JSON data
 func getSelectedHeaders() []string {
-	return []string{"from_account", "amount" , "to_account"}
+	return []string{"from_account", "amount" , "to_account" , "timestamp"}
 }
 
 // getSelectedRow returns only the selected columns from the record
@@ -18,6 +18,7 @@ func getSelectedRow(record map[string]interface{}, myAccountId string) []string 
 	fromAccount := fmt.Sprintf("%v", record["from_account"])
 	toAccount := fmt.Sprintf("%v", record["to_account"])
 	amount := fmt.Sprintf("%v", record["amount"])
+	date := fmt.Sprintf("%v", record["timestamp"])
 
 	if fromAccount == myAccountId {
 		fromAccount = "your account"
@@ -29,7 +30,7 @@ func getSelectedRow(record map[string]interface{}, myAccountId string) []string 
 		amount = fmt.Sprintf("%v", record["amount"])
 	}
 
-	return []string{fromAccount, amount, toAccount}
+	return []string{fromAccount, amount, toAccount, date}
 }
 
 
