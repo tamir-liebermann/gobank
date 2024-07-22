@@ -7,4 +7,5 @@
 .vercel
 /app.yaml
 /api-test
-/env
+.env
+env/
