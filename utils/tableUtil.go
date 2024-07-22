@@ -14,17 +14,27 @@ func getSelectedHeaders() []string {
 }
 
 // getSelectedRow returns only the selected columns from the record
-func getSelectedRow(record map[string]interface{}) []string {
-	return []string{
-		fmt.Sprintf("%v", record["from_account"]),
-		fmt.Sprintf("%v", record["amount"]),
-		fmt.Sprintf("%v", record["to_account"]),
+func getSelectedRow(record map[string]interface{}, myAccountId string) []string {
+	fromAccount := fmt.Sprintf("%v", record["from_account"])
+	toAccount := fmt.Sprintf("%v", record["to_account"])
+	amount := fmt.Sprintf("%v", record["amount"])
 
+	if fromAccount == myAccountId {
+		fromAccount = "your account"
+		amount = fmt.Sprintf("-%v", record["amount"])
 	}
+
+	if toAccount == myAccountId {
+		toAccount = "your account"
+		amount = fmt.Sprintf("%v", record["amount"])
+	}
+
+	return []string{fromAccount, amount, toAccount}
 }
 
+
 // FormatTransactionsTable formats transactions into a table with selected columns
-func FormatTransactionsTable(transactions interface{}) (string, error) {
+func FormatTransactionsTable(transactions interface{},myAccountId string) (string, error) {
 	transactionsBytes, err := json.Marshal(transactions)
 	if err != nil {
 		return "", fmt.Errorf("error converting transactions to JSON: %v", err)
@@ -39,7 +49,7 @@ func FormatTransactionsTable(transactions interface{}) (string, error) {
 	table := tablewriter.NewWriter(&buf)
 	table.SetHeader(getSelectedHeaders())
 	for _, record := range jsonData {
-		table.Append(getSelectedRow(record))
+		table.Append(getSelectedRow(record, myAccountId))
 	}
 	table.Render()
 

@@ -331,7 +331,7 @@ func (api *ApiManager) handleGetTransactionsHistory(ctx *gin.Context) {
 		return
 	}
 
-	table, err := utils.FormatTransactionsTable(transactions)
+	table, err := utils.FormatTransactionsTable(transactions,idParam)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

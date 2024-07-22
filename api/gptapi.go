@@ -404,7 +404,7 @@ func (api *ApiManager) handleTransactionsIntent(ctx *gin.Context) (string, error
 		return "", fmt.Errorf("error fetching transactions: %v", err)
 	}
 
-	table, err := utils.FormatTransactionsTable(transactions)
+	table, err := utils.FormatTransactionsTable(transactions,accountId.(string))
 	if err != nil {
 		return "", err
 	}
