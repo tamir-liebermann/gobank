@@ -1,5 +1,5 @@
 # GoBank Project
-This project is inspired by anthonydm's (https://github.com/anthdm) idea but is different in the DB (no SQL) and in the fact that i integrated AI. 
+I took inspiration from Anthony’s lightweight bank app and made my own Ai driven app
  
 Welcome to the GoBank project! This application provides a simple banking system that allows users to perform various banking actions such as transferring money, depositing money, checking balances, viewing transaction history, and searching for other accounts. The project integrates with OpenAI CLI and Twilio to provide an intuitive chatbot interface through WhatsApp.
 
