@@ -98,7 +98,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		{
 			"intent": "transfer", // must be this keyword
 			"body":{
-				from:"string", // may leave empty string
+				
 				to:"string", // must be the phone number only,
 				amount:"float" // must be specified
 			}
@@ -113,7 +113,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 			}
 		}
 
-		If the user wants to see his transactions history , give them:
+		If the user wants to see his transactions history , give them a formatted table of the transactions history :
 		{
 		"intent": "transactions", // must be this keyword 
 			
@@ -224,9 +224,8 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		    ctx.Set("response", response)
 			return
 		}
-		tranferAccId, _ := primitive.ObjectIDFromHex(accountId) 
-		mostRecentTransfer,_ := api.accMgr.GetMostRecentTransaction(tranferAccId)
-		response = fmt.Sprintf("Transfer request processed successfully : %v", mostRecentTransfer)
+		
+		response = fmt.Sprintf("Transfer request processed successfully : %v To  %v", transferReq.Amount, transferReq.To)
 	case FIND_ACCOUNT_BY_PHONE_INTENT:
 		bodyBytes, err := json.Marshal(req.Body)
 	    if err != nil {
