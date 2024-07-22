@@ -11,8 +11,7 @@ import (
 
 // getHeaders dynamically gets the headers from the JSON data
 func getSelectedHeaders() []string {
-	return []string{"transaction_details"}
-}
+	return []string{"from_account", "amount", "to_account", "timestamp"}}
 
 // getSelectedRow returns only the selected columns from the record
 func getSelectedRow(record map[string]interface{}, myAccountId string) ([]string, error) {
@@ -36,16 +35,19 @@ func getSelectedRow(record map[string]interface{}, myAccountId string) ([]string
 	default:
 		timeAgoStr = fmt.Sprintf("%v minutes ago", int(timeAgo.Minutes()))
 	}
-	var details string
+	
 	if fromAccount == myAccountId {
-		details = fmt.Sprintf("your account -%v to %v %v ago", amount, toAccount, timeAgoStr)
-	} else if toAccount == myAccountId {
-		details = fmt.Sprintf("from %v %v your account %v ago", fromAccount, amount, timeAgoStr)
-	} else {
-		details = fmt.Sprintf("from %v %v to %v %v ago", fromAccount, amount, toAccount, timeAgoStr)
+		fromAccount = "your account"
+		amount = fmt.Sprintf("-%v", record["amount"])
 	}
 
-	return []string{details}, nil
+	if toAccount == myAccountId {
+		toAccount = "your account"
+		amount = fmt.Sprintf("%v", record["amount"])
+	}
+	
+
+	return []string{fromAccount,amount,toAccount, timeAgoStr}, nil
 }
 
 
