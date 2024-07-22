@@ -1,7 +1,0 @@
-POST https://gobank-tamir-42opbff6wa-zf.a.run.app/account/chatgpt
-Content-Type: application/json
-authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjE0MTc0ODYsInVzZXJJZCI6IjY2OTZjYThlZWYxYjFkNTU1Yjk0Nzc0NSIsInVzZXJuYW1lIjoiaXBwbyJ9.I_vgenBMJBsUhEkeM5yQeUDek-nEmExxeuhkUXrx-Kw
-
-{
-    "user_text": "  find this account 667167eaafe345816d333b3d    "
-}
