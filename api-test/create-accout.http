@@ -1,9 +1,0 @@
-POST https://gobank-tamir-42opbff6wa-zf.a.run.app/create
-Content-Type: application/json
-
-{
-    "user_name": "ippo",
-    "password": "maknuchi",
-    "balance": 100000000,
-    "phone_number": "0547766153"
-}

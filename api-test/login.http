@@ -1,7 +1,0 @@
-POST https://gobank-tamir-42opbff6wa-zf.a.run.app//login
-Content-Type: application/json
-
-{
-    "user_name": "DonCor",
-    "password": "tom"
-}
