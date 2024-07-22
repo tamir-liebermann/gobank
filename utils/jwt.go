@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -22,7 +23,7 @@ func GenerateToken(username string, userId primitive.ObjectID) (string, error) {
 }
 
 func VerifyToken(token string) (string, error) {
-		spec := env.New()
+	spec := env.New()
 
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
@@ -53,6 +54,20 @@ func VerifyToken(token string) (string, error) {
 		return "", errors.New("invalid user ID in token claims")
 	}
 
-	return  userIdHex, nil
+	return userIdHex, nil
 
+}
+
+func ExtractStringTokenFromHeader(header string) (string, error) {
+    if header == "" {
+        return "", errors.New("authorization header is empty")
+    }
+
+    // If there is a Bearer prefix, strip it
+    if strings.HasPrefix(header, "Bearer ") {
+        return strings.TrimPrefix(header, "Bearer "), nil
+    }
+
+    // If the header doesn't have the Bearer prefix, assume it's a JWT token directly
+    return header, nil
 }
