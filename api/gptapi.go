@@ -25,7 +25,7 @@ const (
 	DEPOSIT_INTENT          = "deposit"
 	BALANCE_CHECK_INTENT    = "balance"
 	GET_ALL_ACCOUNTS_INTENT = "all accounts"
-	
+	CHANGE_ACC_NAME_INTENT  = "change name"
 )
 
 // type AgentTransferRequest struct {
@@ -88,11 +88,12 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 
 	rules := `
 		You are a bank API, you reply in json objects only, if unsure ask for clarification ,
-		 try to guide the first time user present him the intent map in a human readable bullet pointes
-		 and not json.
+		 try to guide the first time user present him the intent map without the get accounts intent in a human readable bullet pointes
+		 and not json.	
 
 		If the user's intent is clear but the input does not match the spec please guide him on the correct request parameters
 	    Make it feel like a natrual conversation , you can use humor.
+
 
 		If the user wants to transfer to phone number, give them:
 		{
@@ -143,6 +144,14 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 			"body": {
 				
 				"balance": "float" // must be specified
+			}
+		}
+
+		If the user wants to change his account name, give them:
+		{
+			"intent": "change name" // must be this keyword
+			"body": {
+				"account_name": "string" // must be sepcified 
 			}
 		}
 
@@ -197,6 +206,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		DEPOSIT_INTENT:"Please provide a valid amount",
 		BALANCE_CHECK_INTENT:"Check for typos",
 		GET_ALL_ACCOUNTS_INTENT:"You are not the Admin! ",
+		CHANGE_ACC_NAME_INTENT: "Please provide a valid input",
 	}
    
 	// todo use transfer req
@@ -382,7 +392,46 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 		// Respond with the fetched accounts
 		response = fmt.Sprintf("Accounts: %v", accounts)
 
+	case CHANGE_ACC_NAME_INTENT:
+		bodyBytes, err := json.Marshal(req.Body)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+			return
+		}
+		var changeNameReq ChangeAccNameReq
+		err = json.Unmarshal(bodyBytes, &changeNameReq)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": "please specify a clear request"})
+			return
+		}
+		if changeNameReq.AccountHolder == "" {
+        ctx.JSON(http.StatusBadRequest, gin.H{"message": "Account name is required"})
+        return
+    }
+	accountIdInterface, exists := ctx.Get("userId")
+    if !exists {
+        ctx.JSON(http.StatusUnauthorized, gin.H{"message": "User ID not found in context"})
+        return
+    }
+
+    accountId, ok := accountIdInterface.(string)
+    if !ok || accountId == "" {
+        ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid user ID in context"})
+        return
+    }
+
+    // Call the handler function
+    updatedName, err := api.handleChangeAccNameIntent(accountId, changeNameReq.AccountHolder)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"message":  errorMsgMap[req.Intent]})
+        response = errorMsgMap[req.Intent]
+		    ctx.Set("response", response)
+		    return
+    }
+		response = fmt.Sprintf("Username changed to : %v", updatedName)
+
 	}
+
 	ctx.JSON(http.StatusOK, gin.H{"response": response})
 	ctx.Set("response", response) // Set response in Gin context for retrieval
 	ctx.Next()
@@ -583,3 +632,16 @@ func (api *ApiManager) handleGetAccountsIntent(ctx *gin.Context) ([]db.BankAccou
     return accounts, nil
 }
 
+// handleChangeAccNameIntent updates the account name for the given account ID
+func (api *ApiManager) handleChangeAccNameIntent(accountId string, newAccountName string) (string, error) {
+    // Convert the accountId from string to ObjectID
+    
+
+    // Call the ChangeAccName method of AccManager
+    updatedName, err := api.accMgr.ChangeAccName(accountId, newAccountName)
+    if err != nil {
+        return "", fmt.Errorf("error updating account name: %v", err)
+    }
+
+    return updatedName, nil
+}

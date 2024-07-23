@@ -404,3 +404,24 @@ func (m *AccManager) GetMostRecentTransaction(accountID primitive.ObjectID) (*Tr
     return &transaction, nil
 }
 
+func (m *AccManager) ChangeAccName(accountId, accountName string) (string, error) {
+	objID, err := primitive.ObjectIDFromHex(accountId)
+	if err != nil {
+		return "", fmt.Errorf("invalid account ID format")
+	}
+	filter := bson.M{"_id": objID}
+	update := bson.M{"$set": bson.M{"account_holder": accountName}}
+	
+	acc := m.client.Database("banktest").Collection("accs")
+
+	result, err := acc.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		return "", err
+	}
+	
+	if result.MatchedCount == 0 {
+		return "", fmt.Errorf("account not found")
+	}
+
+	return accountName, nil
+}

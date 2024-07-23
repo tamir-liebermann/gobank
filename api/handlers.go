@@ -439,3 +439,44 @@ func (api *ApiManager) healthCheckHandler(c *gin.Context) {
 	response := HealthResponse{Status: "OK"}
 	c.JSON(http.StatusOK, response)
 }
+
+
+func (api *ApiManager) handleChangeAccName(ctx *gin.Context) {
+	// Get accountId from the request context (assuming it is set by middleware)
+	accountIdInterface, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "user ID not found in context"})
+		return
+	}
+
+	accountId, ok := accountIdInterface.(string)
+	if !ok || accountId == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid user ID in context"})
+		return
+	}
+
+	// Get the new account name from the request body
+	var requestBody struct {
+		AccountName string `json:"account_name"`
+	}
+
+	if err := ctx.ShouldBindJSON(&requestBody); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+		return
+	}
+
+	if requestBody.AccountName == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "account name cannot be empty"})
+		return
+	}
+
+	// Call the ChangeAccName method
+	newAccountName, err := api.accMgr.ChangeAccName(accountId, requestBody.AccountName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Respond with the new account name
+	ctx.JSON(http.StatusOK, gin.H{"new_account_name": newAccountName})
+}

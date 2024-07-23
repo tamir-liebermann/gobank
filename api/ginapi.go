@@ -53,6 +53,7 @@ func (api *ApiManager) RegisterRoutes(server *gin.Engine) {
 	accounts.POST("/transfer", api.handleTransfer)
 	accounts.POST("/chatgpt", api.handleChatGPTRequest)
 	accounts.POST("/deposit", api.handleDeposit)
+	accounts.POST("/changeName",api.handleChangeAccName)
 
 	admin := server.Group("/admin")
 	admin.Use(api.authWithTwilioOrJwt)

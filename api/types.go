@@ -120,3 +120,7 @@ type HealthResponse struct {
 type PhoneRequest struct {
 	PhoneNumber string `json:"phone_number"`
 }
+
+type ChangeAccNameReq struct {
+	AccountHolder string `json:"account_name"`
+}
