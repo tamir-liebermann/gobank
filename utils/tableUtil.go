@@ -50,6 +50,13 @@ func getSelectedRow(record map[string]interface{}, myAccountId string) ([]string
 	return []string{fromAccount,amount,toAccount, timeAgoStr}, nil
 }
 
+func reverseSlice(slice []map[string]interface{}) []map[string]interface{} {
+	for i, j := 0, len(slice)-1; i < j; i, j = i+1, j-1 {
+		slice[i], slice[j] = slice[j], slice[i]
+	}
+	return slice
+}
+
 
 // FormatTransactionsTable formats transactions into a table with selected columns
 func FormatTransactionsTable(transactions interface{},myAccountId string) (string, error) {
@@ -62,6 +69,8 @@ func FormatTransactionsTable(transactions interface{},myAccountId string) (strin
 	if err := json.Unmarshal(transactionsBytes, &jsonData); err != nil {
 		return "", fmt.Errorf("error parsing JSON data: %v", err)
 	}
+
+	jsonData = reverseSlice(jsonData)
 
 	var buf bytes.Buffer
 	table := tablewriter.NewWriter(&buf)
