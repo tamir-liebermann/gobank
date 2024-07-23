@@ -8,7 +8,10 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 )
-
+type SearchResult struct {
+    AccountHolder string `json:"account_holder"`
+    PhoneNumber   string `json:"phone_number"`
+}
 // getHeaders dynamically gets the headers from the JSON data
 func getSelectedHeaders() []string {
 	return []string{"from_account", "amount", "to_account", "timestamp"}}
@@ -85,4 +88,31 @@ func FormatTransactionsTable(transactions interface{},myAccountId string) (strin
 	table.Render()
 
 	return buf.String(), nil
+}
+func getSearchHeaders() []string {
+    return []string{"Account Holder", "Phone Number"}
+}
+
+// getSearchRow returns the row data for the search results table
+func getSearchRow(result SearchResult) []string {
+    return []string{
+        result.AccountHolder,
+        result.PhoneNumber,
+    }
+}
+
+// FormatSearchResultsTable formats search results into a table with selected columns
+func FormatSearchResultsTable(results []SearchResult) (string, error) {
+    var buf bytes.Buffer
+    table := tablewriter.NewWriter(&buf)
+    table.SetHeader(getSearchHeaders())
+    
+    for _, result := range results {
+        row := getSearchRow(result)
+        table.Append(row)
+    }
+    
+    table.Render()
+
+    return buf.String(), nil
 }

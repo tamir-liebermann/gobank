@@ -487,24 +487,32 @@ func (api *ApiManager) handleTransferIntent(from, to string, amount float64) err
     return nil
 }
 
-func (api *ApiManager) handleSearchAccountByNameIntent(name string) ([]string, error) {
+func (api *ApiManager) handleSearchAccountByNameIntent(name string) (string, error) {
 	// Call the updated SearchAccountByNameOrPhone function
 	accounts, err := api.accMgr.SearchAccountByNameOrPhone(name)
 	if err != nil {
-		return nil, fmt.Errorf("error searching for account: %v", err)
+		return "", fmt.Errorf("error searching for account: %v", err)
 	}
 
 	// Check if no accounts were found
 	if len(accounts) == 0 {
-		return nil, fmt.Errorf("no accounts found matching the provided name or phone number")
+		return "", fmt.Errorf("no accounts found matching the provided name or phone number")
 	}
 
-	var accountNames []string
-	for _, account := range accounts {
-		accountNames = append(accountNames, account.AccountHolder)
+	 var searchResults []utils.SearchResult
+    for _, account := range accounts {
+        searchResults = append(searchResults, utils.SearchResult{
+            AccountHolder: account.AccountHolder,
+            PhoneNumber:   account.PhoneNumber,
+        })
 	}
+	table, err := utils.FormatSearchResultsTable(searchResults)
+    if err != nil {
+        return "", fmt.Errorf("error formatting search results: %v", err)
+    }
 
-	return accountNames, nil
+
+    return table, nil
 }
 
 func (api *ApiManager) handleFindAccountByPhoneIntent(phone string) (string, error) {
@@ -517,7 +525,7 @@ func (api *ApiManager) handleFindAccountByPhoneIntent(phone string) (string, err
 	if account == nil {
 		return "", fmt.Errorf("account not found")
 	}
-
+	
 	return account.AccountHolder, nil
 }
 

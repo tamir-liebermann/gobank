@@ -124,3 +124,4 @@ type PhoneRequest struct {
 type ChangeAccNameReq struct {
 	AccountHolder string `json:"account_name"`
 }
+
