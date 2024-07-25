@@ -95,12 +95,12 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 	    Make it feel like a natrual conversation , you can use humor.
 
 
-		If the user wants to transfer to phone number, give them:
+		If the user wants to transfer to phone number or account holder's name, give them:
 		{
 			"intent": "transfer", // must be this keyword
 			"body":{
 				
-				to:"string", // must be the phone number only,
+				to:"string", // must be the phone number or name only,
 				amount:"float" // must be specified
 			}
 			
@@ -200,7 +200,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 	
 	errorMsgMap :=  map[string]string{
 		TRANSACTIONS_INTENT:"Transactions not found",
-		TRANSFER_INTENT:"Please provide a valid phone number and amount",
+		TRANSFER_INTENT:"Please provide a valid name or phone number and amount",
 		FIND_ACCOUNT_BY_PHONE_INTENT:"Please provide a valid phone number",
 		SEARCH_INTENT: "Please provide a valid account name or phone",
 		DEPOSIT_INTENT:"Please provide a valid amount",
@@ -356,6 +356,7 @@ func (api *ApiManager) handleChatGPTRequest(ctx *gin.Context) {
 			transactionInfos = append(transactionInfos, TransactionInfo{
 				FromAccount: transaction.FromAccount.Hex(),
 				Amount:      transaction.Amount,
+
 			})
 		}
 	}
@@ -470,13 +471,19 @@ func (api *ApiManager) handleTransferIntent(from, to string, amount float64) err
 	var toAccountID primitive.ObjectID
     // Check if 'to' is an ObjectID (account ID))
      if toAccountID, err = primitive.ObjectIDFromHex(to); err != nil {
-        // 'to' is not a valid ObjectID, assume it's a phone number
-        account, err := api.accMgr.GetAccountByPhone(to)
-        if err != nil {
-            return fmt.Errorf("error finding account by phone: %v", err)
-        }
-        toAccountID = account.ID
-    }
+		// 'to' is not a valid ObjectID, check if it's a phone number
+		account, err := api.accMgr.GetAccountByPhone(to)
+		if err != nil {
+			// Not a phone number, assume it's an account holder's name
+			account, err = api.accMgr.GetAccountByName(to)
+			if err != nil {
+				return fmt.Errorf("error finding account by phone or name: %v", err)
+			}
+			toAccountID = account.ID
+		} else {
+			toAccountID = account.ID
+		}
+	}
 
     // Perform the transfer operation
     err = api.accMgr.TransferAmountById(fromAccountID, toAccountID, amount)

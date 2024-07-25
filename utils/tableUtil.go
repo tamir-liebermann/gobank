@@ -2,11 +2,13 @@ package utils
 
 import (
 	"bytes"
+
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/olekukonko/tablewriter"
+	
 )
 type SearchResult struct {
     AccountHolder string `json:"account_holder"`
@@ -14,12 +16,14 @@ type SearchResult struct {
 }
 // getHeaders dynamically gets the headers from the JSON data
 func getSelectedHeaders() []string {
-	return []string{"from_account", "amount", "to_account", "timestamp"}}
+	return []string{"sender_name", "amount", "receiver_name", "timestamp"}}
 
 // getSelectedRow returns only the selected columns from the record
-func getSelectedRow(record map[string]interface{}, myAccountId string) ([]string, error) {
+func getSelectedRow(record map[string]interface{}, myAccountId string,  ) ([]string, error) {
 	fromAccount := fmt.Sprintf("%v", record["from_account"])
+	senderName :=  fmt.Sprintf("%v", record["sender_name"])
 	toAccount := fmt.Sprintf("%v", record["to_account"])
+	receiverName :=  fmt.Sprintf("%v", record["receiver_name"])
 	amount := fmt.Sprintf("%v", record["amount"])
 	date := fmt.Sprintf("%v", record["timestamp"])
 	timestamp, err := time.Parse(time.RFC3339, date)
@@ -39,18 +43,24 @@ func getSelectedRow(record map[string]interface{}, myAccountId string) ([]string
 		timeAgoStr = fmt.Sprintf("%v minutes ago", int(timeAgo.Minutes()))
 	}
 	
+	
+	
+	
+
 	if fromAccount == myAccountId {
 		fromAccount = "your account"
+		senderName = "your account"
 		amount = fmt.Sprintf("-%v", record["amount"])
 	}
 
 	if toAccount == myAccountId {
 		toAccount = "your account"
+		receiverName= "your account"
 		amount = fmt.Sprintf("%v", record["amount"])
 	}
 	
 
-	return []string{fromAccount,amount,toAccount, timeAgoStr}, nil
+	return []string{senderName,amount,receiverName, timeAgoStr}, nil
 }
 
 func reverseSlice(slice []map[string]interface{}) []map[string]interface{} {
@@ -62,7 +72,7 @@ func reverseSlice(slice []map[string]interface{}) []map[string]interface{} {
 
 
 // FormatTransactionsTable formats transactions into a table with selected columns
-func FormatTransactionsTable(transactions interface{},myAccountId string) (string, error) {
+func FormatTransactionsTable(transactions interface{},myAccountId string,  ) (string, error) {
 	transactionsBytes, err := json.Marshal(transactions)
 	if err != nil {
 		return "", fmt.Errorf("error converting transactions to JSON: %v", err)
@@ -79,7 +89,7 @@ func FormatTransactionsTable(transactions interface{},myAccountId string) (strin
 	table := tablewriter.NewWriter(&buf)
 	table.SetHeader(getSelectedHeaders())
 	for _, record := range jsonData {
-		row, err := getSelectedRow(record, myAccountId)
+		row, err := getSelectedRow(record, myAccountId )
 		if err != nil {
 			return "", fmt.Errorf("error formatting row: %v", err)
 		}
@@ -116,3 +126,4 @@ func FormatSearchResultsTable(results []SearchResult) (string, error) {
 
     return buf.String(), nil
 }
+

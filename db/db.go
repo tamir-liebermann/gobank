@@ -33,7 +33,9 @@ type BankAccount struct {
 type Transaction struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	FromAccount primitive.ObjectID `bson:"from_account" json:"from_account"`
+	SenderName string		       `bson:"sender_name" json:"sender_name"`
 	ToAccount   primitive.ObjectID `bson:"to_account" json:"to_account"`
+	ReceiverName string			   `bson:"receiver_name" json:"receiver_name"`
 	Amount      float64            `bson:"amount" json:"amount"`
 	Timestamp   time.Time          `bson:"timestamp" json:"timestamp"`
 }
@@ -196,6 +198,16 @@ func (m *AccManager) GetAccountByPhone(phone string) (*BankAccount, error) {
 	return &account, err
 }
 
+func (m *AccManager) GetAccountNameOrPhone(id primitive.ObjectID) (string ) {
+	acc ,err := m.SearchAccountById(id) 
+	if err != nil {
+		return  "Could not find account" 
+	}
+	accName := acc.AccountHolder
+
+	return accName  
+}
+
 func (m *AccManager) SearchAccountById(id primitive.ObjectID) (*BankAccount, error) {
 	filter := bson.M{"_id": id}
 	var account BankAccount
@@ -294,6 +306,8 @@ func (m *AccManager) TransferAmountById(fromAccountId, toAccountId primitive.Obj
 			ToAccount:   toAccountId,
 			Amount:      amount,
 			Timestamp:   time.Now(),
+			SenderName:  m.GetAccountNameOrPhone(fromAccountId),
+			ReceiverName: m.GetAccountNameOrPhone(toAccountId),
 		}
 		_, err = m.transactions.InsertOne(sessCtx, transaction)
 		if err != nil {
@@ -424,4 +438,14 @@ func (m *AccManager) ChangeAccName(accountId, accountName string) (string, error
 	}
 
 	return accountName, nil
+}
+
+func (m *AccManager) GetAccountByName(name string) (*BankAccount, error) {
+	var account BankAccount
+	filter := bson.M{"account_holder": name}
+	err := m.client.Database("banktest").Collection("accs").FindOne(context.TODO(), filter).Decode(&account)
+	if err != nil {
+		return nil, fmt.Errorf("error finding account by name: %v", err)
+	}
+	return &account, nil
 }
