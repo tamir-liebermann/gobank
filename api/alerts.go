@@ -52,8 +52,11 @@ func (p *AlertPoller) Start(store *SubscriberStore, broadcast func(*Subscriber, 
 }
 
 func (p *AlertPoller) connect(store *SubscriberStore, broadcast func(*Subscriber, OrefAlert)) error {
-	dialer := websocket.DefaultDialer
-	conn, _, err := dialer.Dial(tzevaadomWSURL, nil)
+	headers := map[string][]string{
+		"Origin":     {"https://www.tzevaadom.co.il"},
+		"User-Agent": {"Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36"},
+	}
+	conn, _, err := websocket.DefaultDialer.Dial(tzevaadomWSURL, headers)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
 	}
@@ -213,7 +216,13 @@ func (api *ApiManager) broadcastAlert(sub *Subscriber, alert OrefAlert) {
 	} else {
 		msg = buildMessage(sub, alert, alert.Data, false)
 	}
-	api.sendWhatsAppMessage(sub.Phone, msg) //nolint:errcheck
+	to := sub.Phone
+	if !strings.HasPrefix(to, "whatsapp:") {
+		to = "whatsapp:" + to
+	}
+	if err := api.sendWhatsAppMessage(to, msg); err != nil {
+		log.Printf("broadcast failed for %s: %v", sub.Phone, err)
+	}
 }
 
 func buildMessage(sub *Subscriber, alert OrefAlert, areas []string, inEnglish bool) string {
